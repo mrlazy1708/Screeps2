@@ -9,13 +9,12 @@ const Player = require(`./player`);
 require(`./constants`);
 
 class Engine {
-  constructor(root) {
-    console.log(`Engine starting up from ${root}`);
-    this.root = root;
+  constructor() {
+    console.log(`Engine starting up`);
 
-    fs.mkdirSync(`${root}`, { recursive: true });
+    fs.mkdirSync(`./local`, { recursive: true });
     const recover = JSON.parse(
-      fs.readFileSync(`${root}/meta.json`, {
+      fs.readFileSync(`./local/meta.json`, {
         encoding: `utf8`,
         flag: `a+`,
       }) || `{}`
@@ -28,7 +27,7 @@ class Engine {
 
     this.players = _.mapValues(
       recover.players,
-      (data, name) => new Player(`${root}/players`, data, name)
+      (data, name) => new Player(data, name)
     );
 
     this.rooms = _.mapValues(
@@ -65,7 +64,7 @@ class Engine {
 
       _.forEach(this.rooms, (room) => room.update());
 
-      fs.writeFileSync(`${this.root}/meta.json`, JSON.stringify(this.recover));
+      fs.writeFileSync(`./local/meta.json`, JSON.stringify(this.recover));
 
       // const map = this.creeps.John.room.print;
       // console.log1(`print room ${this.creeps.John.room.name}`);
@@ -86,7 +85,7 @@ class Engine {
     this.interval = 1000;
     const RNG = (this.RNG = utils.PRNG.from(seed));
     this.players = {
-      Alice: new Player(`${this.root}/players`, { rcl: 1 }, `Alice`),
+      Alice: new Player({ rcl: 1 }, `Alice`),
     };
     const paras = [WORLD_WIDTH, WORLD_HEIGHT, ROOM_WIDTH, ROOM_HEIGHT],
       walls = utils.Maze.generate(...paras, RNG, 0.5, RNG.rand * 0.35),
@@ -132,7 +131,7 @@ class Engine {
       /** a claimable room must have exactly 2 or 3 sources, otherwise it will be too barren or too rich */
       if (nSources >= 2 && nSources <= 3) real.StructureController.new(room);
     });
-    fs.writeFileSync(`${this.root}/meta.json`, JSON.stringify(this.recover));
+    fs.writeFileSync(`./local/meta.json`, JSON.stringify(this.recover));
     // this.creeps = {};
     // real.Creep.new(
     //     this.rooms.W0N0,

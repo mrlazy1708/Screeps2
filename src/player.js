@@ -7,18 +7,17 @@ const fake = require(`./fake`);
 const constants = require(`./constants`);
 
 class Player {
-  constructor(root, recover, name) {
-    this.root = `${root}/${name}`;
+  constructor(recover, name) {
     this.name = name;
 
-    fs.mkdirSync(`${this.root}`, { recursive: true });
-    const code = fs.readFileSync(`${this.root}/main.js`, {
+    fs.mkdirSync(`./local/player/${this.name}`, { recursive: true });
+    const code = fs.readFileSync(`./local/players/${this.name}/main.js`, {
       encoding: `utf8`,
       flag: `a+`,
     });
     this.code = code;
 
-    this.memory = fs.readFileSync(`${this.root}/memory.json`, {
+    this.memory = fs.readFileSync(`./local/players/${this.name}/memory.json`, {
       encoding: `utf8`,
       flag: `a+`,
     });
@@ -47,7 +46,7 @@ class Player {
     } catch (err) {
       console.log1(err);
     }
-    fs.writeFileSync(`${this.root}/memory.json`, this.memory);
+    fs.writeFileSync(`./local/players/${this.name}/memory.json`, this.memory);
     console.log(`    ${this.name} ran by ${new Date() - startTime}ms`);
 
     callback();
