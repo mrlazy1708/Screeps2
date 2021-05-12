@@ -282,37 +282,49 @@ module.exports = function (engine, player, context) {
     this.owner = creep.owner;
     this.my = this.owner === player.name;
 
-    /** Creep.memory */
-    const creeps_ = (context.Memory.creeps = context.Memory.creeps || {});
-    Object.defineProperty(Creep.prototype, `memory`, {
-      get: () => (creeps_[this.name] = creeps_[this.name] || {}),
-    });
-
     /** Creep.move */
     this.move = creep.scheduleMove.bind(creep);
   }
 
+  /** Creep.memory */
+  Object.defineProperty(Creep.prototype, `memory`, {
+    get: function () {
+      const creeps_ = (context.Memory.creeps = context.Memory.creeps || {});
+      return (creeps_[this.name] = creeps_[this.name] || {});
+    },
+  });
+
   /** Creep.moveByPath */
   Creep.prototype.moveByPath = function (path) {
     if (!(path instanceof Array)) return ERR_INVALID_ARGS;
-    const dir = path.shift();
-    if (!(dir in directions)) return ERR_INVALID_ARGS;
+    const dir = _.head(path);
+    if (dir === undefined) return ERR_NO_PATH;
     return this.move(dir);
   };
 
   /** Creep.moveTo */
-  Creep.prototype.moveTo = function (pos, opts, arg) {
+  Creep.prototype.moveTo = function (pos, opts = {}, arg = {}) {
     if (pos === undefined || pos === null) return ERR_INVALID_ARGS;
     if (!(pos instanceof RoomPosition)) {
       if (pos.pos instanceof RoomPosition) pos = pos.pos;
       else (pos = new RoomPosition(pos, opts, this.room.name)), (opts = arg);
     }
     if (_.isEqual(this.pos, pos)) return OK;
-    if (_.head(this.memory._move) === undefined)
-      this.memory._move = new PathFinder().search(this.pos, pos).path;
-    const path = this.memory._move;
-    if (_.head(path) === undefined) return ERR_NO_PATH;
-    return this.move(_.head(path));
+    const serializeMemory =
+      opts.serializeMemory || opts.serializeMemory === undefined;
+    let path = this.memory._move;
+    if (serializeMemory) path = _.map(path, (code) => utils.dirs[code]);
+    const noPathFinding = opts.noPathFinding,
+      reusePath = opts.reusePath || 5;
+    if (_.head(path) === undefined && !noPathFinding)
+      path = _.take(new PathFinder().search(this.pos, pos).path, reusePath);
+    const ret = this.moveByPath(path);
+    if (ret === OK) path = _.tail(path);
+    if (serializeMemory)
+      (path = _.map(path, (dir) => utils.dirCodes[dir])),
+        (path = _.join(path, ``));
+    this.memory._move = path;
+    return ret;
   };
 
   /** constructor for Structure inherited from RoomObject */
@@ -350,14 +362,16 @@ module.exports = function (engine, player, context) {
 
     this.owner = structure.owner;
     this.my = this.owner === player.name;
-
-    /** OwnedStructure.memory */
-    const structures_ = (context.Memory.structures =
-      context.Memory.structures || {});
-    Object.defineProperty(Creep.prototype, `memory`, {
-      get: () => (structures_[this.name] = structures_[this.name] || {}),
-    });
   }
+
+  /** OwnedStructure.memory */
+  Object.defineProperty(OwnedStructure.prototype, `memory`, {
+    get: () => {
+      const structures_ = (context.Memory.structures =
+        context.Memory.structures || {});
+      return (structures_[this.name] = structures_[this.name] || {});
+    },
+  });
 
   /** constructor for StructureSpawn inherited from OwnedStructure */
   function StructureSpawn(spawn, roomObjects) {

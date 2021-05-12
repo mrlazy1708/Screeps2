@@ -180,11 +180,11 @@ class Creep extends RoomObject {
     this.fatigue -= this.getActiveBodyparts(MOVE) * (MOVE_POWER + 1);
     if (this.fatigue < 0) this.fatigue = 0;
   }
-  scheduleMove(direction) {
+  scheduleMove(dir) {
     if (this.fatigue > 0) return ERR_TIRED;
-    const ret = this.tryMove(direction);
+    const ret = this.tryMove(dir);
     if (!(ret instanceof RoomPosition)) return ret;
-    this.argsMove = [direction, ret];
+    this.argsMove = [dir, ret];
     return OK;
   }
   move(head, pos) {

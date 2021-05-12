@@ -4,8 +4,11 @@ const _ = require(`lodash`);
 require(`./constants`);
 
 // prettier-ignore
-const directions = [TOP, TOP_RIGHT, RIGHT, BOTTOM_RIGHT, BOTTOM, BOTTOM_LEFT, LEFT, TOP_LEFT];
-module.exports.directions = directions;
+const dirs = [TOP, TOP_RIGHT, RIGHT, BOTTOM_RIGHT, BOTTOM, BOTTOM_LEFT, LEFT, TOP_LEFT];
+module.exports.dirs = dirs;
+
+const invertedDirs = _.invert(dirs);
+module.exports.dirCodes = invertedDirs;
 
 // prettier-ignore
 const dxdyOf = {[TOP]: [0, -1], [TOP_RIGHT]: [1, -1], [RIGHT]: [1, 0], [BOTTOM_RIGHT]: [1, 1], [BOTTOM]: [0, 1], [BOTTOM_LEFT]: [-1, 1], [LEFT]: [-1, 0], [TOP_LEFT]: [-1, -1]};
@@ -17,6 +20,7 @@ const ASCIIs = {[TERRAIN_PLAIN]: ` `, [TERRAIN_SWAMP]: `~`, [TERRAIN_LAVA]: `!`,
     [STRUCTURE_CONTROLLER]: `⌘`,[STRUCTURE_SOURCE]: `☢︎`,[STRUCTURE_SPAWN]: `⚙︎`};
 module.exports.symbolOf = (object) =>
   ASCIIs[object] || ASCIIs[object.head] || ASCIIs[object.structureType];
+
 const invertedASCIIs = _.invert(ASCIIs);
 module.exports.meaningOf = (symbol) => invertedASCIIs[symbol];
 

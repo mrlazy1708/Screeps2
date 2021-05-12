@@ -36,11 +36,14 @@ class Player {
     /** parse Memory */
     Object.assign(context.Memory, JSON.parse(this.memory));
 
+    /** run code */
     const script = new vm.Script(this.script);
     script.runInContext(context);
 
+    /** stringify Memory */
     this.memory = JSON.stringify(context.Memory);
     fs.writeFileSync(`./local/players/${this.name}/memory.json`, this.memory);
+
     console.log(`    ${this.name} ran by ${new Date() - startTime}ms`);
 
     callback();
