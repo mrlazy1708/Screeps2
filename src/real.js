@@ -57,28 +57,16 @@ class Room {
       this.structures,
       _.partial(Structure.new, this)
     );
-    this.objects = new Proxy([this.creeps, this.structures], {
-      get: ([creeps, structures], p) => creeps[p] || structures[p],
-      set: ([creeps, structures], p, v) => {
-        if (v instanceof Creep && p === v.name)
-          (creeps[p] = v), (engine.creeps[p] = v);
-        if (v instanceof Structure && p === v.id)
-          (structures[p] = v), (engine.structures[p] = v);
-        return true;
-      },
-      deleteProperty: ([creeps, structures], p) => {
-        if (p in creeps) delete creeps[p], delete engine.creeps[p];
-        if (p in structures) delete structures[p], delete engine.structures[p];
-      },
-    });
   }
   get array() {
-    const array = this.terrain.array;
-    _.forEach(this.objects, (object) => {
-      const pos = object.pos;
-      console.log1(pos, utils.symbolOf(object));
-      array[pos.y][pos.x] = utils.symbolOf(object);
-    });
+    const array = this.terrain.array,
+      draw = (object) => {
+        const pos = object.pos;
+        console.log(pos, utils.symbolOf(object));
+        array[pos.y][pos.x] = utils.symbolOf(object);
+      };
+    _.forEach(this.creeps, draw);
+    _.forEach(this.structures, draw);
     return array;
   }
   get print() {
@@ -88,8 +76,9 @@ class Room {
   look(pos, y) {
     if (!(pos instanceof RoomPosition))
       pos = new RoomPosition(pos, y, this.name);
-    const objects = _.filter(this.objects, { pos });
-    return _.concat(objects, [this.terrain.look(pos)]);
+    const creeps = _.filter(this.creeps, { pos }),
+      structures = _.filter(this.structures, { pos });
+    return _.concat(creeps, structures, [this.terrain.look(pos)]);
   }
   get select() {
     const xy = this.engine.RNG.pick(
@@ -106,7 +95,8 @@ class Room {
     if (xy) return new RoomPosition(...xy, this.name);
   }
   update() {
-    _.forEach(this.objects, `update`);
+    _.forEach(this.creeps, (creep) => creep.update());
+    _.forEach(this.structures, (structure) => structure.update());
   }
   visible(player) {
     return true;
@@ -137,9 +127,9 @@ class RoomObject {
     return pos.clamp();
   }
   realMove(pos) {
-    delete this.room.objects[this.id], (this.pos = pos);
+    delete this.room.structures[this.id], (this.pos = pos);
     this.room = this.engine.rooms[this.pos.roomName];
-    this.room.objects[this.id] = this;
+    this.room.structures[this.id] = this;
   }
   get recover() {
     const recover = {};
@@ -179,6 +169,11 @@ class Creep extends RoomObject {
       );
     return _.sumBy(this.body, (part) => part.hits === CREEP_BODYPART_HITS);
   }
+  realMove(pos) {
+    delete this.room.creeps[this.name], (this.pos = pos);
+    this.room = this.engine.rooms[this.pos.roomName];
+    this.room.creeps[this.name] = this;
+  }
   update() {
     if (this.argsMove) this.move(...this.argsMove), delete this.argsMove;
 
@@ -186,7 +181,6 @@ class Creep extends RoomObject {
     if (this.fatigue < 0) this.fatigue = 0;
   }
   scheduleMove(direction) {
-    console.log1(this.room.terrain.look);
     if (this.fatigue > 0) return ERR_TIRED;
     const ret = this.tryMove(direction);
     if (!(ret instanceof RoomPosition)) return ret;
@@ -243,7 +237,7 @@ class StructureController extends Structure {
     else pos = pos.recover;
     const structureType = STRUCTURE_CONTROLLER,
       controller = new StructureController(room, { pos, structureType }, id);
-    room.objects[id] = controller;
+    room.structures[id] = controller;
     return controller;
   }
   constructor(room, data, id) {
@@ -265,7 +259,7 @@ class StructureSource extends Structure {
     else pos = pos.recover;
     const structureType = STRUCTURE_SOURCE,
       source = new StructureSource(room, { pos, structureType }, id);
-    room.objects[id] = source;
+    room.structures[id] = source;
     return source;
   }
   constructor(room, data, id) {

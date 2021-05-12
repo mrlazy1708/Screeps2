@@ -1,4 +1,3 @@
-// prettier-ignore
 // const dirs = [TOP, TOP_RIGHT, RIGHT, BOTTOM_RIGHT, BOTTOM, BOTTOM_LEFT, LEFT, TOP_LEFT];
 
 // const creep = Game.creeps.John;
@@ -19,18 +18,20 @@
 // console.log1(`spawn: `, spawn.pos);
 
 // const ret = spawn.spawnCreep([WORK, CARRY, MOVE], Game.time);
-console.log1(Game.time);
 
+// module.exports.loop = function () {
 const room = Game.rooms.W0N0;
-console.log1(room.name);
+console.log(Game.time, room.name);
 
-const controller = room.controller;
-console.log1(controller.id, controller.pos);
+// const controller = room.controller;
+// console.log1(controller.id, controller.pos);
 
-const sources = _.filter(room.find(FIND_STRUCTURES), {
+const source = _.filter(room.find(FIND_STRUCTURES), {
   structureType: STRUCTURE_SOURCE,
-});
-console.log1(`Sources: `, sources);
+})[0];
 
 const creep = Game.creeps.John;
-console.log1(`John: `, creep);
+
+console.log(source.pos);
+console.log(creep.pos, creep.moveTo(source));
+// };

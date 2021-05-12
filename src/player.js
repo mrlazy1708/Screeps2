@@ -3,19 +3,18 @@
 const _ = require(`lodash`);
 const fs = require(`fs`);
 const vm = require(`vm`);
-const fake = require(`./fake`);
-const constants = require(`./constants`);
+const setup = require(`./setup`);
 
 class Player {
   constructor(recover, name) {
     this.name = name;
 
-    fs.mkdirSync(`./local/player/${this.name}`, { recursive: true });
-    const code = fs.readFileSync(`./local/players/${this.name}/main.js`, {
-      encoding: `utf8`,
-      flag: `a+`,
-    });
-    this.code = code;
+    this.script = fs.readFileSync(
+      `./local/players/${this.name}/script/main.js`,
+      {
+        encoding: `utf8`,
+      }
+    );
 
     this.memory = fs.readFileSync(`./local/players/${this.name}/memory.json`, {
       encoding: `utf8`,
@@ -23,29 +22,24 @@ class Player {
     });
   }
   runTick(engine, callback) {
-    this.Memory = {};
-    const context = {
-      _: _,
-      Game: new fake.GameClass(engine, this),
-      Memory: this.Memory,
-      Room: fake.Room,
-      Creep: fake.Creep,
-      require: require,
-      console: console,
-      JSON: JSON,
-    };
-    Object.assign(context, constants);
+    /** create context */
+    const context = { JSON, require, console, _ };
     vm.createContext(context);
 
+    /** setup lexical environment */
+    setup(engine, this, context);
+
+    /** start timer */
     console.log(`  Running ${this.name}'s code`);
     const startTime = new Date();
-    try {
-      Object.assign(this.Memory, JSON.parse(this.memory || `{}`));
-      vm.runInContext(this.code, context);
-      this.memory = JSON.stringify(this.Memory);
-    } catch (err) {
-      console.log1(err);
-    }
+
+    /** parse Memory */
+    Object.assign(context.Memory, JSON.parse(this.memory));
+
+    const script = new vm.Script(this.script);
+    script.runInContext(context);
+
+    this.memory = JSON.stringify(context.Memory);
     fs.writeFileSync(`./local/players/${this.name}/memory.json`, this.memory);
     console.log(`    ${this.name} ran by ${new Date() - startTime}ms`);
 

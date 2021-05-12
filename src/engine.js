@@ -12,7 +12,6 @@ class Engine {
   constructor() {
     console.log(`Engine starting up`);
 
-    fs.mkdirSync(`./local`, { recursive: true });
     const recover = JSON.parse(
       fs.readFileSync(`./local/meta.json`, {
         encoding: `utf8`,
@@ -66,9 +65,9 @@ class Engine {
 
       fs.writeFileSync(`./local/meta.json`, JSON.stringify(this.recover));
 
-      // const map = this.creeps.John.room.print;
-      // console.log1(`print room ${this.creeps.John.room.name}`);
-      // console.log1(map);
+      const map = this.creeps.John.room.print;
+      console.log(`print room ${this.creeps.John.room.name}`);
+      console.log(map);
 
       this.nextTick();
     }
