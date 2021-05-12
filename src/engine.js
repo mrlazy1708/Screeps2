@@ -33,7 +33,6 @@ class Engine {
       recover.rooms,
       (data, name) => new real.Room(this, data, name)
     );
-    _.forEach(this.rooms, (room) => room.construct());
 
     this.creeps = _.merge({}, ..._.map(this.rooms, `creeps`));
     this.structures = _.merge({}, ..._.map(this.rooms, `structures`));
@@ -109,7 +108,7 @@ class Engine {
           setTerrain(swamps[rY][rX].data, TERRAIN_SWAMP);
           setTerrain(walls[rY][rX].data, TERRAIN_WALL);
           const terrain = real.Room.Terrain.compress(raw),
-            name = real.RoomPosition.nameOf(x, y);
+            name = utils.roomName(x, y);
           real.Room.Terrain.decompress(terrain);
           return new real.Room(this, { terrain, creeps, structures }, name);
         })

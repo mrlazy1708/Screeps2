@@ -6,6 +6,9 @@ const real = require(`./real`);
 const priorityQueue = require(`./priorityQueue`);
 const constants = require(`./constants`);
 
+/** Cannot build constructor in advance (outside):
+ *    In case of player modifies prototypes, then other players would be influenced.
+ */
 module.exports = function (engine, player, context) {
   /** constructor for Memory */
   function Memory() {}
@@ -47,14 +50,50 @@ module.exports = function (engine, player, context) {
       `name`
     );
 
+    /** Game.getObjectById */
     const creeps_ = _.mapKeys(Game.creeps, `id`),
       structures_ = Game.structures,
       GameObjects_ = _.merge({}, creeps_, structures_);
-    this.getObjectById = _.partial(Game.prototype.getObjectById, GameObjects_);
+    Game.prototype.getObjectById = function (id) {
+      return GameObjects_[id] || null;
+    };
   }
 
-  /** Game.getObjectById */
-  Game.prototype.getObjectById = (objects, id) => objects[id] || null;
+  /** constructor for RoomPosition */
+  function RoomPosition(x, y, roomName) {
+    this.x = x;
+    this.y = y;
+    this.roomName = roomName;
+  }
+
+  /** RoomPosition.getRangeTo */
+  RoomPosition.prototype.getRangeTo = function (pos) {
+    if (!(pos instanceof RoomPosition)) {
+      if (pos.pos instanceof RoomPosition) pos = pos.pos;
+      else (pos = new RoomPosition(pos, opts, this.room.name)), (opts = arg);
+    }
+    return real.RoomPosition.prototype.getRangeTo.call(this, pos);
+  };
+
+  /** constructor for Store */
+  function Store(store) {
+    if (!(store instanceof real.Store)) throw new TypeError();
+
+    /** Store.getCapacity */
+    this.getCapacity = function (resourceType) {
+      return store.getCapacity(resourceType);
+    };
+
+    /** Store.getUsed */
+    this.getUsed = function (resourceType) {
+      return store.getUsed(resourceType);
+    };
+
+    /** Store.getFree */
+    this.getFree = function (resourceType) {
+      return store.getFree(resourceType);
+    };
+  }
 
   /** constructor for PathFinder */
   function PathFinder(opts = {}) {
@@ -77,40 +116,14 @@ module.exports = function (engine, player, context) {
     this.heuristicWeight = opts.heuristicWeight || 1.2;
   }
 
-  /** constructor for RoomPosition */
-  function RoomPosition(x, y, roomName) {
-    this.x = x;
-    this.y = y;
-    this.roomName = roomName;
-  }
-
-  /** RoomPosition.getRangeTo */
-  RoomPosition.prototype.getRangeTo = function (pos) {
-    if (!(pos instanceof RoomPosition))
-      pos = new RoomPosition(...arguments, this.roomName);
-    const [tX, tY] = real.RoomPosition.parse(this.roomName),
-      [pX, pY] = real.RoomPosition.parse(pos.roomName);
-    return Math.max(
-      Math.abs(tX * ROOM_WIDTH + this.x - (pX * ROOM_WIDTH + pos.x)),
-      Math.abs(tY * ROOM_HEIGHT + this.y - (pY * ROOM_HEIGHT + pos.y))
-    );
-  };
-
-  /** constructor for Store */
-  function Store(creep) {
-    if (!creep instanceof real.Creep) throw new TypeError();
-    store = new Proxy(creep.body, {
-      get: (body, type) => _.sumBy(body, (part) => part.type === CARRY),
-    });
-    return store;
-  }
-
   /** PathFinder.search with A-star algorithm */
+  const hash = (pos) => `${pos.x},${pos.y}:${pos.roomName}`,
+    prototype = real.RoomPosition.prototype,
+    move = (pos, dir) => prototype.clamp.call(prototype.move.call(pos, dir));
   /** TODO: Optimize it! Such poor performance! */
   PathFinder.prototype.search = function (origin, goal) {
     if (!(goal instanceof Array)) goal = Array(goal);
-    const hash = (pos) => `${pos.x},${pos.y}:${pos.roomName}`,
-      [heuristic, moveCost] = [new Map(), new Map()],
+    const [heuristic, moveCost] = [new Map(), new Map()],
       [internal, frontier] = [new Map(), new priorityQueue()],
       goals = _.invert(_.map(goal, hash)),
       moveCostOf = (pos) => {
@@ -146,10 +159,8 @@ module.exports = function (engine, player, context) {
       const [w, g, pos] = top;
       if (w - g < hBest) [hBest, cost, nearest] = [w - g, g, pos];
       if (goals[hash(pos)] !== undefined) break;
-      _.forEach(utils.dxdyOf, (__, dir) => {
-        const posd = real.RoomPosition.clamp(
-          real.RoomPosition.move(_.clone(pos), dir)
-        );
+      _.forEach(utils.dirs, (dir) => {
+        const posd = move(_.clone(pos), dir);
         explore(posd, pos, dir, heuristicOf(posd), g + moveCostOf(posd));
       });
     }
@@ -264,11 +275,11 @@ module.exports = function (engine, player, context) {
   function RoomObject(object, _roomObjects, rooms) {
     if (!object instanceof real.RoomObject) throw new TypeError();
 
-    this.pos = new RoomPosition(...object.pos.recover);
-    this.room = rooms[this.pos.roomName];
+    this.id = object.id;
+    this.room = rooms[object.pos.roomName];
+    this.pos = new RoomPosition(object.pos.x, object.pos.y, this.room.name);
     this.hits = object.hits;
     this.hitsMax = object.hitsMax;
-    this.id = object.id;
   }
 
   /** constructor for Creep inherited from RoomObject */
@@ -279,11 +290,28 @@ module.exports = function (engine, player, context) {
     roomObjects[this.room.name][this.id] = this;
 
     this.name = creep.name;
+    this.head = creep.head;
+    this.body = creep.body;
+    this.fatigue = creep.fatigue;
     this.owner = creep.owner;
     this.my = this.owner === player.name;
+    this.store = new Store(creep.store);
+
+    /** Creep.getActiveBodyparts */
+    this.getActiveBodyparts = function (bodypart) {
+      return creep.getActiveBodyparts(bodypart);
+    };
 
     /** Creep.move */
-    this.move = creep.scheduleMove.bind(creep);
+    this.move = function (dir) {
+      return creep.move(dir);
+    };
+
+    /** Creep.harvest */
+    this.harvest = function (target) {
+      if (!(target instanceof StructureSource)) return ERR_INVALID_ARGS;
+      return creep.harvest(target);
+    };
   }
 
   /** Creep.memory */
@@ -304,11 +332,11 @@ module.exports = function (engine, player, context) {
 
   /** Creep.moveTo */
   Creep.prototype.moveTo = function (pos, opts = {}, arg = {}) {
-    if (pos === undefined || pos === null) return ERR_INVALID_ARGS;
     if (!(pos instanceof RoomPosition)) {
       if (pos.pos instanceof RoomPosition) pos = pos.pos;
       else (pos = new RoomPosition(pos, opts, this.room.name)), (opts = arg);
     }
+    if (pos === undefined || pos === null) return ERR_INVALID_ARGS;
     if (_.isEqual(this.pos, pos)) return OK;
     const serializeMemory =
       opts.serializeMemory || opts.serializeMemory === undefined;

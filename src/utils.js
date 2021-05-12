@@ -11,8 +11,8 @@ const invertedDirs = _.invert(dirs);
 module.exports.dirCodes = invertedDirs;
 
 // prettier-ignore
-const dxdyOf = {[TOP]: [0, -1], [TOP_RIGHT]: [1, -1], [RIGHT]: [1, 0], [BOTTOM_RIGHT]: [1, 1], [BOTTOM]: [0, 1], [BOTTOM_LEFT]: [-1, 1], [LEFT]: [-1, 0], [TOP_LEFT]: [-1, -1]};
-module.exports.dxdyOf = dxdyOf;
+const dxdy = {[TOP]: [0, -1], [TOP_RIGHT]: [1, -1], [RIGHT]: [1, 0], [BOTTOM_RIGHT]: [1, 1], [BOTTOM]: [0, 1], [BOTTOM_LEFT]: [-1, 1], [LEFT]: [-1, 0], [TOP_LEFT]: [-1, -1]};
+module.exports.dxdy = dxdy;
 
 // prettier-ignore
 const ASCIIs = {[TERRAIN_PLAIN]: ` `, [TERRAIN_SWAMP]: `~`, [TERRAIN_LAVA]: `!`, [TERRAIN_WALL]: `x`, 
@@ -23,6 +23,21 @@ module.exports.symbolOf = (object) =>
 
 const invertedASCIIs = _.invert(ASCIIs);
 module.exports.meaningOf = (symbol) => invertedASCIIs[symbol];
+
+function parse(roomName) {
+  const [__, qy, ny, qx, nx] = /([WE])(\d+)([NS])(\d+)/.exec(roomName),
+    y = qy === `N` ? -1 - Number(ny) : Number(ny),
+    x = qx === `W` ? -1 - Number(nx) : Number(nx);
+  return [x, y];
+}
+module.exports.parse = parse;
+
+function roomName(x, y) {
+  const nameX = x >= 0 ? `E${x}` : `W${-x - 1}`,
+    nameY = y >= 0 ? `S${y}` : `N${-y - 1}`;
+  return nameX + nameY;
+}
+module.exports.roomName = roomName;
 
 class M64 {
   static mul32(a, b) {

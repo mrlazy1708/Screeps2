@@ -32,6 +32,11 @@ const source = _.filter(room.find(FIND_STRUCTURES), {
 
 const creep = Game.creeps.John;
 
-console.log(source.pos);
-console.log(creep.pos, creep.moveTo(source));
+console.log(source.pos, creep.pos);
+
+console.log(creep.store.getUsed(RESOURCE_ENERGY));
+
+const ret = creep.harvest(source);
+console.log(ret);
+if (ret === ERR_NOT_IN_RANGE) console.log(creep.moveTo(source));
 // };
