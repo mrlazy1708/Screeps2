@@ -295,6 +295,8 @@ class Creep extends RoomObject {
       return ERR_NOT_IN_RANGE;
     if (this.getActiveBodyparts(WORK) === 0) return ERR_NO_BODYPART;
     if (this.store.getFree(RESOURCE_ENERGY) === 0) return ERR_FULL;
+    if (target.store.getUsed(RESOURCE_ENERGY) === 0)
+      return ERR_NOT_ENOUGH_RESOURCES;
     (this.action = `harvest_`), (this.args = [target.id]);
     return OK;
   }
@@ -306,6 +308,24 @@ class Creep extends RoomObject {
       delta = Math.min(power, free, remain);
     this.store.addUsed(RESOURCE_ENERGY, delta);
     source.store.addUsed(RESOURCE_ENERGY, -delta);
+  }
+  upgradeController(target) {
+    if (this.pos.getRangeTo(target.pos) > UPGRADE_CONTROLLER_RANGE)
+      return ERR_NOT_IN_RANGE;
+    if (this.getActiveBodyparts(WORK) === 0) return ERR_NO_BODYPART;
+    if (this.store.getUsed(RESOURCE_ENERGY) === 0)
+      return ERR_NOT_ENOUGH_RESOURCES;
+    if (target.level === CONTROLLER_LEVEL_MAX) return ERR_FULL;
+    (this.action = `upgradeController_`), (this.args = [target.id]);
+    return OK;
+  }
+  upgradeController_(id) {
+    const controller = this.room.structures[id],
+      power = this.getActiveBodyparts(WORK) * UPGRADE_CONTROLLER_POWER,
+      remain = this.store.getUsed(RESOURCE_ENERGY),
+      delta = Math.min(power, remain, CONTROLLER_MAX_UPGRADE_PER_TICK);
+    controller.progress += delta;
+    this.store.addUsed(RESOURCE_ENERGY, -delta);
   }
   visible(player) {
     return true;
@@ -354,13 +374,28 @@ class StructureController extends Structure {
     room.structures[id] = controller;
     return controller;
   }
-  constructor() {
+  constructor(room, data) {
     super(...arguments);
 
-    this.room.controller = this;
+    this.level = data.level;
+    this.progress = data.progress;
+    this.progressTotal = CONTROLLER_LEVELS[this.level];
+
+    room.controller = this;
+  }
+  update() {
+    super.update();
+
+    if (this.progress >= this.progressTotal) {
+      this.progress -= this.progressTotal;
+      this.progressTotal = CONTROLLER_LEVELS[++this.level];
+    }
   }
   get recover() {
     const recover = super.recover;
+    recover.level = this.level;
+    recover.progress = this.progress;
+    recover.progressTotal = this.progressTotal;
     return recover;
   }
 }
@@ -380,8 +415,8 @@ class StructureSource extends Structure {
   constructor(_room, data) {
     super(...arguments);
 
-    this.store = new Store(data.store, [RESOURCE_ENERGY], SOURCE_CAPACITY);
     this.ticksToRegeneration = data.ticksToRegeneration;
+    this.store = new Store(data.store, [RESOURCE_ENERGY], SOURCE_CAPACITY);
   }
   update() {
     super.update.call(this);

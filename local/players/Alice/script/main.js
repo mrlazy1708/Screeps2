@@ -29,14 +29,31 @@ console.log(Game.time, room.name);
 const source = _.filter(room.find(FIND_STRUCTURES), {
   structureType: STRUCTURE_SOURCE,
 })[0];
+console.log(
+  `source`,
+  source.id,
+  source.store.getUsed(RESOURCE_ENERGY),
+  source.ticksToRegeneration
+);
+
+const controller = room.controller;
+console.log(
+  `controller`,
+  controller.id,
+  controller.level,
+  controller.progress,
+  controller.progressTotal
+);
 
 const creep = Game.creeps.John;
+console.log(`creep`, creep.id, creep.store.getUsed(RESOURCE_ENERGY));
 
-console.log(source.pos, creep.pos);
-
-console.log(creep.store.getUsed(RESOURCE_ENERGY));
-
-const ret = creep.harvest(source);
-console.log(ret);
-if (ret === ERR_NOT_IN_RANGE) console.log(creep.moveTo(source));
+const ret1 = creep.upgradeController(controller);
+console.log(ret1);
+if (ret1 === ERR_NOT_IN_RANGE) console.log(creep.moveTo(controller));
+if (ret1 === ERR_NOT_ENOUGH_RESOURCES) {
+  const ret2 = creep.harvest(source);
+  console.log(ret2);
+  if (ret2 === ERR_NOT_IN_RANGE) console.log(creep.moveTo(source));
+}
 // };

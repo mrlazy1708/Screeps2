@@ -312,6 +312,12 @@ module.exports = function (engine, player, context) {
       if (!(target instanceof StructureSource)) return ERR_INVALID_ARGS;
       return creep.harvest(target);
     };
+
+    /** Creep.upgradeController */
+    this.upgradeController = function (target) {
+      if (!(target instanceof StructureController)) return ERR_INVALID_ARGS;
+      return creep.upgradeController(target);
+    };
   }
 
   /** Creep.memory */
@@ -371,6 +377,10 @@ module.exports = function (engine, player, context) {
     Object.assign(this, new Structure(...arguments));
     roomObjects[this.room.name][this.id] = this;
 
+    this.level = controller.level;
+    this.progress = controller.progress;
+    this.progressTotal = controller.progressTotal;
+
     this.room.controller = this;
   }
 
@@ -380,6 +390,9 @@ module.exports = function (engine, player, context) {
 
     Object.assign(this, new Structure(...arguments));
     roomObjects[this.room.name][this.id] = this;
+
+    this.ticksToRegeneration = source.ticksToRegeneration;
+    this.store = new Store(source.store);
   }
 
   /** constructor for OwnedStructure inherited from Structure */
