@@ -114,6 +114,7 @@ class Room {
       );
     }
     constructor(data) {
+      this.recover = data;
       this.data = Room.Terrain.decompress(data);
     }
     look(x, y) {
@@ -131,10 +132,6 @@ class Room {
       return _.map(this.data, (row) =>
         _.map(row, (sym) => utils.symbolOf(sym))
       );
-    }
-    get recover() {
-      const recover = Room.Terrain.compress(this.data);
-      return recover;
     }
   };
   constructor(engine, data, name) {

@@ -143,6 +143,9 @@ class Engine {
     //     `John`
     // );
   }
+  getRoomData(roomName) {
+    return this.rooms[roomName].recover;
+  }
   get recover() {
     const recover = {};
     recover.time = this.time;
