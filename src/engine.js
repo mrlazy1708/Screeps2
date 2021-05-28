@@ -62,7 +62,8 @@ class Engine {
 
       _.forEach(this.rooms, (room) => room.update());
 
-      fs.writeFileSync(`./local/meta.json`, JSON.stringify(this.recover));
+      const god = { visible: () => true };
+      fs.writeFileSync(`./local/meta.json`, JSON.stringify(this.recover(god)));
 
       const map = this.creeps.John.room.print;
       console.log(`print room ${this.creeps.John.room.name}`);
@@ -143,10 +144,7 @@ class Engine {
     //     `John`
     // );
   }
-  getRoomData(roomName) {
-    return this.rooms[roomName].recover;
-  }
-  get recover() {
+  recover() {
     const recover = {};
     recover.time = this.time;
     recover.interval = this.interval;

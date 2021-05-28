@@ -1,12 +1,12 @@
 function draw(object) {
-  // do something!
+  console.log(object);
 }
 
 function main() {
   const interval = 1000;
-  fetch(`http://127.0.0.1:8080/`, {
+  fetch(`${window.location.herf}`, {
     method: `POST`,
-    body: `{"request": "getRoomData", "roomName": "W0N0"}`,
+    body: `{"request": "data", "player": "Alice"}`,
   })
     .then((response) => response.json())
     .then((json) => draw(json));

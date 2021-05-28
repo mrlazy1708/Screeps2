@@ -4,95 +4,45 @@ const _ = require(`lodash`);
 const utils = require(`./utils`);
 const constants = require(`./constants`);
 
-class RoomPosition {
-  constructor(x, y, roomName) {
-    this.x = x;
-    this.y = y;
-    this.roomName = roomName;
-  }
-  get roomX() {
-    const [__, quadrant, coordinate] = /([WE])(\d+)[NS]\d+/.exec(this.roomName);
-    if (quadrant === `W`) return -1 - Number(coordinate);
-    if (quadrant === `E`) return Number(coordinate);
-  }
-  set roomX(value) {
-    const [__, rest] = /[WE]\d+([NS]\d+)/.exec(this.roomName);
-    this.roomName = (value >= 0 ? `E${value}` : `W${-1 - value}`) + rest;
-    return this.roomName;
-  }
-  get roomY() {
-    const [__, quadrant, coordinate] = /[WE]\d+([NS])(\d+)/.exec(this.roomName);
-    if (quadrant === `N`) return -1 - Number(coordinate);
-    if (quadrant === `S`) return Number(coordinate);
-  }
-  set roomY(value) {
-    const [__, rest] = /([WE]\d+)[NS]\d+/.exec(this.roomName);
-    this.roomName = rest + (value >= 0 ? `S${value}` : `N${-1 - value}`);
-    return this.roomName;
-  }
-  copy() {
-    return new RoomPosition(this.x, this.y, this.roomName);
-  }
-  move(dir) {
-    const [dx, dy] = utils.dxdy[dir];
-    (this.x += dx), (this.y += dy);
-    return this;
-  }
-  clamp() {
-    if (this.x <= 0) this.roomX--, (this.x = ROOM_WIDTH - 1);
-    else if (this.x >= ROOM_WIDTH - 1) this.roomX++, (this.x = 0);
-    if (this.y <= 0) this.roomY--, (this.y = ROOM_HEIGHT - 1);
-    else if (this.y >= ROOM_HEIGHT - 1) this.roomY++, (this.y = 0);
-    return this;
-  }
-  getRangeTo(pos) {
-    const [tX, tY] = utils.parse(this.roomName),
-      [pX, pY] = utils.parse(pos.roomName);
-    return Math.max(
-      Math.abs(tX * ROOM_WIDTH + this.x - (pX * ROOM_WIDTH + pos.x)),
-      Math.abs(tY * ROOM_HEIGHT + this.y - (pY * ROOM_HEIGHT + pos.y))
-    );
-  }
-  visible(player) {
-    return true;
-  }
-  get recover() {
-    const recover = [this.x, this.y, this.roomName];
-    return recover;
-  }
-}
-module.exports.RoomPosition = RoomPosition;
-
+/** Store class defination */
 class Store {
   constructor(data, limit, capacity) {
     this.data = data;
     this.limit = limit;
     this.capacity = capacity;
   }
-  getUsed(resourceType) {
-    if (resourceType) return this.data[resourceType] || 0;
+  /** get used capacity of type of resource */
+  getUsed(type) {
+    if (type) return this.data[type] || 0;
     return _.sum(_.values(this.data));
   }
-  setUsed(resourceType, amount) {
-    this.data[resourceType] = amount;
+  /** set used capacity of type of resource */
+  setUsed(type, amount) {
+    this.data[type] = amount;
   }
-  addUsed(resourceType, amount) {
-    this.setUsed(resourceType, this.getUsed(resourceType) + amount);
+  /** add used capacity of type of resource */
+  addUsed(type, amount) {
+    this.setUsed(type, this.getUsed(type) + amount);
   }
-  getCapacity(resourceType) {
-    if (resourceType === undefined || _.includes(this.limit, resourceType))
+  /** get capacity of type of resource */
+  getCapacity(type) {
+    if (type === undefined || _.includes(this.limit, type))
       return this.capacity;
     return 0;
   }
+  /** set capacity of type of resource */
   setCapacity(amount) {
     this.capacity = amount;
   }
+  /** add capacity of type of resource */
   addCapacity(amount) {
     this.setCapacity(this.getCapacity(), amount);
   }
-  getFree(resourceType) {
-    return this.getCapacity(resourceType) - this.getUsed(resourceType);
+  /** get free capacity of type of resource */
+  getFree(type) {
+    return this.getCapacity(type) - this.getUsed(type);
   }
+  /** get recovering data */
   get recover() {
     const recover = this.data;
     return recover;
@@ -100,44 +50,12 @@ class Store {
 }
 module.exports.Store = Store;
 
+/** Room class defination */
 class Room {
-  static Terrain = class {
-    static compress(data, sep = `,`) {
-      return _.join(
-        _.map(data, (row) => _.join(_.map(row, utils.symbolOf), ``)),
-        sep
-      );
-    }
-    static decompress(data, sep = `,`) {
-      return _.map(_.split(data, sep), (row) =>
-        _.map(_.split(row, ``), utils.meaningOf)
-      );
-    }
-    constructor(data) {
-      this.recover = data;
-      this.data = Room.Terrain.decompress(data);
-    }
-    look(x, y) {
-      if (x instanceof RoomPosition) (y = x.y), (x = x.x);
-      return (this.data[y] || [])[x];
-    }
-    count(x, y) {
-      if (x instanceof RoomPosition) (y = x.y), (x = x.x);
-      return _.countBy(
-        _.map(utils.dxdy),
-        ([dx, dy]) => this.look(x + dx, y + dy) === TERRAIN_PLAIN
-      )[true];
-    }
-    get array() {
-      return _.map(this.data, (row) =>
-        _.map(row, (sym) => utils.symbolOf(sym))
-      );
-    }
-  };
   constructor(engine, data, name) {
     this.engine = engine;
     this.name = name;
-    this.terrain = new Room.Terrain(data.terrain);
+    this.terrain = new RoomTerrain(data.terrain);
     this.creeps = _.mapValues(
       data.creeps,
       (data, name) => new Creep(this, data, name)
@@ -147,6 +65,34 @@ class Room {
       _.partial(Structure.new, this)
     );
   }
+  /** look Room at RoomPosition */
+  at(pos, y) {
+    if (!(pos instanceof RoomPosition))
+      pos = new RoomPosition(pos, y, this.name);
+    const creeps = _.filter(this.creeps, { pos }),
+      structures = _.filter(this.structures, { pos });
+    return _.concat(creeps, structures, [this.terrain.at(pos)]);
+  }
+  // get select() {
+  //   const xy = this.engine.RNG.pick(
+  //     _.filter(
+  //       _.concat(
+  //         ..._.map(_.range(ROOM_HEIGHT), (y) =>
+  //           _.map(_.range(ROOM_WIDTH), (x) => [x, y])
+  //         )
+  //       ),
+  //       ([x, y]) =>
+  //         _.isEqual(this.look(x, y), [TERRAIN_WALL]) && this.terrain.count(x, y)
+  //     )
+  //   );
+  //   if (xy) return new RoomPosition(...xy, this.name);
+  // }
+  /** update actions and state */
+  update() {
+    _.forEach(this.creeps, (creep) => creep.update());
+    _.forEach(this.structures, (structure) => structure.update());
+  }
+  /** get Room in array form */
   get array() {
     const array = this.terrain.array,
       draw = (object) => {
@@ -158,38 +104,12 @@ class Room {
     _.forEach(this.structures, draw);
     return array;
   }
+  /** get Room in string form */
   get print() {
     const join = (row) => _.join(row, ``);
     return `|${_.join(_.map(this.array, join), `|\n|`)}|`;
   }
-  look(pos, y) {
-    if (!(pos instanceof RoomPosition))
-      pos = new RoomPosition(pos, y, this.name);
-    const creeps = _.filter(this.creeps, { pos }),
-      structures = _.filter(this.structures, { pos });
-    return _.concat(creeps, structures, [this.terrain.look(pos)]);
-  }
-  get select() {
-    const xy = this.engine.RNG.pick(
-      _.filter(
-        _.concat(
-          ..._.map(_.range(ROOM_HEIGHT), (y) =>
-            _.map(_.range(ROOM_WIDTH), (x) => [x, y])
-          )
-        ),
-        ([x, y]) =>
-          _.isEqual(this.look(x, y), [TERRAIN_WALL]) && this.terrain.count(x, y)
-      )
-    );
-    if (xy) return new RoomPosition(...xy, this.name);
-  }
-  update() {
-    _.forEach(this.creeps, (creep) => creep.update());
-    _.forEach(this.structures, (structure) => structure.update());
-  }
-  visible(player) {
-    return true;
-  }
+  /** get recovering data */
   get recover() {
     const recover = {};
     recover.terrain = this.terrain.recover;
@@ -200,6 +120,114 @@ class Room {
 }
 module.exports.Room = Room;
 
+/** RoomTerrain class defination */
+class RoomTerrain {
+  /** stringify RoomTerrain */
+  static compress(data, sep = `,`) {
+    return _.join(
+      _.map(data, (row) => _.join(_.map(row, utils.symbolOf), ``)),
+      sep
+    );
+  }
+  /** parse RoomTerrain */
+  static decompress(data, sep = `,`) {
+    return _.map(_.split(data, sep), (row) =>
+      _.map(_.split(row, ``), utils.meaningOf)
+    );
+  }
+  constructor(data) {
+    this.data = RoomTerrain.decompress(data);
+  }
+  /** look at RoomTerrain at coordinate */
+  at(x, y) {
+    if (x instanceof RoomPosition) (y = x.y), (x = x.x);
+    return (this.data[y] || [])[x];
+  }
+  // count(x, y) {
+  //   if (x instanceof RoomPosition) (y = x.y), (x = x.x);
+  //   return _.countBy(
+  //     _.map(utils.dxdy),
+  //     ([dx, dy]) => this.look(x + dx, y + dy) === TERRAIN_PLAIN
+  //   )[true];
+  // }
+  /** get RoomTerrain in array form */
+  get array() {
+    return _.map(this.data, (row) => _.map(row, (sym) => utils.symbolOf(sym)));
+  }
+  /** get recovering data */
+  get recover() {
+    return RoomTerrain.compress(this.data);
+  }
+}
+module.exports.RoomTerrain = RoomTerrain;
+
+/** RoomPosition class defination */
+class RoomPosition {
+  constructor(x, y, roomName) {
+    this.x = x;
+    this.y = y;
+    this.roomName = roomName;
+  }
+  /** get X coordinate in roomName */
+  get roomX() {
+    const [__, quadrant, coordinate] = /([WE])(\d+)[NS]\d+/.exec(this.roomName);
+    if (quadrant === `W`) return -1 - Number(coordinate);
+    if (quadrant === `E`) return Number(coordinate);
+  }
+  /** set X coordinate in roomName */
+  set roomX(value) {
+    const [__, rest] = /[WE]\d+([NS]\d+)/.exec(this.roomName);
+    this.roomName = (value >= 0 ? `E${value}` : `W${-1 - value}`) + rest;
+    return this.roomName;
+  }
+  /** get Y coordinate in roomName */
+  get roomY() {
+    const [__, quadrant, coordinate] = /[WE]\d+([NS])(\d+)/.exec(this.roomName);
+    if (quadrant === `N`) return -1 - Number(coordinate);
+    if (quadrant === `S`) return Number(coordinate);
+  }
+  /** set Y coordinate in roomName */
+  set roomY(value) {
+    const [__, rest] = /([WE]\d+)[NS]\d+/.exec(this.roomName);
+    this.roomName = rest + (value >= 0 ? `S${value}` : `N${-1 - value}`);
+    return this.roomName;
+  }
+  /** clone RoomPosition */
+  copy() {
+    return new RoomPosition(this.x, this.y, this.roomName);
+  }
+  /** move RoomPosition towards dir */
+  move(dir) {
+    const [dx, dy] = utils.dxdy[dir];
+    (this.x += dx), (this.y += dy);
+    return this;
+  }
+  /** clamp RoomPosition with boundaries */
+  clamp() {
+    if (this.x <= 0) this.roomX--, (this.x = ROOM_WIDTH - 1);
+    else if (this.x >= ROOM_WIDTH - 1) this.roomX++, (this.x = 0);
+    if (this.y <= 0) this.roomY--, (this.y = ROOM_HEIGHT - 1);
+    else if (this.y >= ROOM_HEIGHT - 1) this.roomY++, (this.y = 0);
+    return this;
+  }
+  /** get range to another RoomPosition */
+  getRangeTo(pos) {
+    const [tX, tY] = utils.parse(this.roomName),
+      [pX, pY] = utils.parse(pos.roomName);
+    return Math.max(
+      Math.abs(tX * ROOM_WIDTH + this.x - (pX * ROOM_WIDTH + pos.x)),
+      Math.abs(tY * ROOM_HEIGHT + this.y - (pY * ROOM_HEIGHT + pos.y))
+    );
+  }
+  /** get recovering data */
+  get recover() {
+    const recover = [this.x, this.y, this.roomName];
+    return recover;
+  }
+}
+module.exports.RoomPosition = RoomPosition;
+
+/** RoomObject class defination */
 class RoomObject {
   constructor(room, data) {
     this.engine = room.engine;
@@ -210,21 +238,25 @@ class RoomObject {
     this.hits = data.hits;
     this.hitsMax = data.hitsMax;
   }
+  /** update action and state */
   update() {
     if (this[this.action] instanceof Function)
       this[this.action](...this.args), delete this.action;
   }
+  /** move RoomObject towards dir */
   move(dir) {
     if (!_.includes(utils.dirs, dir)) return ERR_INVALID_ARGS;
     const pos = this.pos.copy().move(dir);
-    if (!_.isEqual(this.room.look(pos), [TERRAIN_PLAIN])) return ERR_NO_PATH;
+    if (!_.isEqual(this.room.at(pos), [TERRAIN_PLAIN])) return ERR_NO_PATH;
     return pos.clamp();
   }
+  /** move RoomObject to RoomPosition */
   moveToPos(pos) {
     delete this.room.structures[this.id], (this.pos = pos);
     this.room = this.engine.rooms[this.pos.roomName];
     this.room.structures[this.id] = this;
   }
+  /** get recovering data */
   get recover() {
     const recover = {};
     recover.pos = this.pos.recover;
@@ -236,6 +268,7 @@ class RoomObject {
 }
 module.exports.RoomObject = RoomObject;
 
+/** Creep class defination inherited from RoomObject */
 class Creep extends RoomObject {
   static new(room, data, name) {
     const creep = new Creep(room, data, name);
@@ -256,15 +289,18 @@ class Creep extends RoomObject {
       this.getActiveBodyparts(CARRY) * CARRY_CAPACITY
     );
   }
-  getActiveBodyparts(bodypart) {
-    const filter = bodypart ? (part) => part === bodypart : (part) => true;
+  /** get active bodyparts of type */
+  getActiveBodyparts(type) {
+    const filter = type ? (part) => part === type : (part) => true;
     return _.sumBy(this.body, filter);
   }
+  /** move Creep to RoomPosition */
   moveToPos(pos) {
     delete this.room.creeps[this.name], (this.pos = pos);
     this.room = this.engine.rooms[this.pos.roomName];
     this.room.creeps[this.name] = this;
   }
+  /** update action and state */
   update() {
     super.update();
 
@@ -288,12 +324,12 @@ class Creep extends RoomObject {
     this.moveToPos(pos);
   }
   harvest(target) {
-    if (this.pos.getRangeTo(target.pos) > HARVEST_RANGE)
-      return ERR_NOT_IN_RANGE;
     if (this.getActiveBodyparts(WORK) === 0) return ERR_NO_BODYPART;
     if (this.store.getFree(RESOURCE_ENERGY) === 0) return ERR_FULL;
     if (target.store.getUsed(RESOURCE_ENERGY) === 0)
       return ERR_NOT_ENOUGH_RESOURCES;
+    if (this.pos.getRangeTo(target.pos) > HARVEST_RANGE)
+      return ERR_NOT_IN_RANGE;
     (this.action = `harvest_`), (this.args = [target.id]);
     return OK;
   }
@@ -307,12 +343,12 @@ class Creep extends RoomObject {
     source.store.addUsed(RESOURCE_ENERGY, -delta);
   }
   upgradeController(target) {
-    if (this.pos.getRangeTo(target.pos) > UPGRADE_CONTROLLER_RANGE)
-      return ERR_NOT_IN_RANGE;
     if (this.getActiveBodyparts(WORK) === 0) return ERR_NO_BODYPART;
     if (this.store.getUsed(RESOURCE_ENERGY) === 0)
       return ERR_NOT_ENOUGH_RESOURCES;
     if (target.level === CONTROLLER_LEVEL_MAX) return ERR_FULL;
+    if (this.pos.getRangeTo(target.pos) > UPGRADE_CONTROLLER_RANGE)
+      return ERR_NOT_IN_RANGE;
     (this.action = `upgradeController_`), (this.args = [target.id]);
     return OK;
   }
@@ -323,9 +359,6 @@ class Creep extends RoomObject {
       delta = Math.min(power, remain, CONTROLLER_MAX_UPGRADE_PER_TICK);
     controller.progress += delta;
     this.store.addUsed(RESOURCE_ENERGY, -delta);
-  }
-  visible(player) {
-    return true;
   }
   get recover() {
     const recover = super.recover;
@@ -349,9 +382,6 @@ class Structure extends RoomObject {
     this.structureType = data.structureType;
   }
   update() {}
-  visible(player) {
-    return true;
-  }
   get recover() {
     const recover = super.recover;
     recover.structureType = this.structureType;

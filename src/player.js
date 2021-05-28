@@ -48,6 +48,9 @@ class Player {
 
     callback();
   }
+  visible() {
+    return true;
+  }
   get recover() {
     const recover = {};
     recover.rcl = this.rcl;

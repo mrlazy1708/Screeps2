@@ -22,19 +22,19 @@ module.exports = function (engine, player, context) {
 
     /** Game.rooms */
     this.rooms = _.mapValues(
-      _.pickBy(engine.rooms, (room) => room.visible(player)),
+      _.pickBy(engine.rooms, player.visible),
       (room) => new Room(room, roomObjects_)
     );
 
     /** Game.creeps */
     this.creeps = _.mapValues(
-      _.pickBy(engine.creeps, (creep) => creep.visible(player)),
+      _.pickBy(engine.creeps, player.visible),
       (creep) => new Creep(creep, roomObjects_, this.rooms)
     );
 
     /** Game.structures */
     this.structures = _.mapValues(
-      _.pickBy(engine.structures, (structures) => structures.visible(player)),
+      _.pickBy(engine.structures, player.visible),
       (structure) => {
         const constructor = context[`Structure${structure.structureType}`];
         return new constructor(structure, roomObjects_, this.rooms);
