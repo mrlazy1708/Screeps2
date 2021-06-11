@@ -8,22 +8,23 @@ Object.assign(module.exports, {
   ROOM_HEIGHT: 64,
 });
 
-/**
- * Basics
- */
 Object.assign(global, module.exports);
 Object.assign(module.exports, {
-  /** directions */
-  TOP: `Top`,
-  TOP_RIGHT: `Top-Right`,
-  RIGHT: `Right`,
-  BOTTOM_RIGHT: `Bottom-Right`,
-  BOTTOM: `Bottom`,
-  BOTTOM_LEFT: `Bottom-Left`,
-  LEFT: `Left`,
-  TOP_LEFT: `Top-Left`,
+  /**
+   * Directions in 2D shard
+   * @typedef {string} direction
+   */
 
-  /** colors */
+  /** @type direction */ TOP: `Top`,
+  /** @type direction */ TOP_RIGHT: `Top-Right`,
+  /** @type direction */ RIGHT: `Right`,
+  /** @type direction */ BOTTOM_RIGHT: `Bottom-Right`,
+  /** @type direction */ BOTTOM: `Bottom`,
+  /** @type direction */ BOTTOM_LEFT: `Bottom-Left`,
+  /** @type direction */ LEFT: `Left`,
+  /** @type direction */ TOP_LEFT: `Top-Left`,
+
+  /**  */
   COLOR_RED: 0,
   COLOR_PURPLE: 1,
   COLOR_BLUE: 2,
@@ -50,7 +51,8 @@ Object.assign(module.exports, {
   TOUGH: `Tough`,
   WORK: `Work`,
 
-  /** object types */
+  /** roomObject types */
+  CREEP: `Creep`,
   STRUCTURE_CONTAINER: `Container`,
   STRUCTURE_CONTROLLER: `Controller`,
   STRUCTURE_EXTENSION: `Extension`,
@@ -187,6 +189,24 @@ Object.assign(module.exports, {
     [STRUCTURE_TOWER]    : [0,    0,    0,    1,    1,    2,    2,    3,    6   ],
     [STRUCTURE_WALL]     : [0,    0,    2500, 2500, 2500, 2500, 2500, 2500, 2500],
   },
+  OBSTACLE_OBJECT_TYPES: [
+    CREEP,
+    STRUCTURE_CONTROLLER,
+    STRUCTURE_EXTENSION,
+    STRUCTURE_FACTORY,
+    STRUCTURE_INVADER_CORE,
+    STRUCTURE_LAB,
+    STRUCTURE_LINK,
+    STRUCTURE_MINERAL,
+    STRUCTURE_NUKER,
+    STRUCTURE_OBSERVER,
+    STRUCTURE_SOURCE,
+    STRUCTURE_SPAWN,
+    STRUCTURE_STORAGE,
+    STRUCTURE_TERMINAL,
+    STRUCTURE_TOWER,
+    STRUCTURE_WALL,
+  ],
   /** container */
   CONTAINER_CAPACITY: 2000,
   CONTAINER_DECAY_AMOUNT: 5000,
@@ -338,16 +358,16 @@ Object.assign(module.exports, {
   /** returns */
   /** OK */
   OK: `OK`,
-  /** not controllable */
+  /** not applicable */
   ERR_NOT_OWNER: `Error: Not Owner`,
   ERR_NOT_AVAILABLE: `Error: Not Available`,
   /** invalid argument */
+  ERR_NO_BODYPART: `Error: No Bodypart`,
   ERR_INVALID_ARGS: `Error: Invalid Arguments`,
   ERR_INVALID_TARGET: `Error: Invalid Target`,
   /** requirement error */
   ERR_FULL: `Error: Full`,
   ERR_TIRED: `Error: Tired`,
-  ERR_NO_BODYPART: `Error: No Bodypart`,
   ERR_NOT_ENOUGH_RESOURCES: `Error: Resources Not Enough`,
   ERR_NOT_ENOUGH_RCL: `Error: RCL Not Enough`,
   ERR_NOT_ENOUGH_GCL: `Error: GCL Not Enough`,

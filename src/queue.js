@@ -1,8 +1,9 @@
 `use strict`;
 
 const _ = require(`lodash`);
+const assert = require(`assert/strict`);
 
-class priorityQueue {
+class Queue {
   constructor(memory, predictor) {
     this.s = new Set(_.tail(memory));
     this.m = memory || [null];
@@ -56,4 +57,4 @@ class priorityQueue {
   }
 }
 
-module.exports = priorityQueue;
+module.exports = Queue;

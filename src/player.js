@@ -1,6 +1,8 @@
 `use strict`;
 
 const _ = require(`lodash`);
+const assert = require(`assert/strict`);
+const constants = require(`./constants`);
 const fs = require(`fs`);
 const vm = require(`vm`);
 const setup = require(`./setup`);
@@ -27,7 +29,7 @@ class Player {
     vm.createContext(context);
 
     /** setup lexical environment */
-    setup(engine, this, context);
+    setup.create(context, engine, this);
 
     /** start timer */
     console.log(`  Running ${this.name}'s code`);
@@ -38,7 +40,11 @@ class Player {
 
     /** run code */
     const script = new vm.Script(this.script);
-    script.runInContext(context);
+    try {
+      script.runInContext(context);
+    } catch (err) {
+      console.error(err);
+    }
 
     /** stringify Memory */
     this.memory = JSON.stringify(context.Memory);
@@ -47,9 +53,6 @@ class Player {
     console.log(`    ${this.name} ran by ${new Date() - startTime}ms`);
 
     callback();
-  }
-  visible() {
-    return true;
   }
   get recover() {
     const recover = {};

@@ -19,16 +19,17 @@
 
 // const ret = spawn.spawnCreep([WORK, CARRY, MOVE], Game.time);
 
-// module.exports.loop = function () {
 const room = Game.rooms.W0N0;
 console.log(Game.time, room.name);
 
 // const controller = room.controller;
 // console.log1(controller.id, controller.pos);
 
-const source = _.filter(room.find(FIND_STRUCTURES), {
-  structureType: STRUCTURE_SOURCE,
-})[0];
+const source = _.head(
+  _.filter(room.find(FIND_STRUCTURES), {
+    structureType: STRUCTURE_SOURCE,
+  })
+);
 console.log(
   `source`,
   source.id,
@@ -48,12 +49,13 @@ console.log(
 const creep = Game.creeps.John;
 console.log(`creep`, creep.id, creep.store.getUsed(RESOURCE_ENERGY));
 
-const ret1 = creep.upgradeController(controller);
-console.log(ret1);
-if (ret1 === ERR_NOT_IN_RANGE) console.log(creep.moveTo(controller));
-if (ret1 === ERR_NOT_ENOUGH_RESOURCES) {
-  const ret2 = creep.harvest(source);
-  console.log(ret2);
-  if (ret2 === ERR_NOT_IN_RANGE) console.log(creep.moveTo(source));
-}
-// };
+// console.log(creep.move(LEFT));
+
+// const ret1 = creep.upgradeController(controller);
+// console.log(ret1);
+// if (ret1 === ERR_NOT_IN_RANGE) console.log(creep.moveTo(controller));
+// if (ret1 === ERR_NOT_ENOUGH_RESOURCES) {
+//   const ret2 = creep.harvest(source);
+//   console.log(ret2);
+//   if (ret2 === ERR_NOT_IN_RANGE) console.log(creep.moveTo(source));
+// }

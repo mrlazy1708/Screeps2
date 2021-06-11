@@ -14,10 +14,8 @@ http
     request.on(`data`, (chunk) => {
       response.writeHead(200, { "content-Type": "text/html" });
       const data = JSON.parse(chunk.toString());
-      if (data.request === "data") {
-        const player = engine.players[data.player];
-        response.end(JSON.stringify(engine.recover(player)));
-      }
+      if (data.request === "getRoomData")
+        response.end(JSON.stringify(engine.getRoomData(data.roomName)));
     });
     request.on(`end`, () => {
       if (body.length === 0) {
@@ -40,5 +38,5 @@ http
   .listen(8080);
 
 console.log(`Server running at http://127.0.0.1:8080/`);
-// console.log1 = console.log;
+console.log1 = console.log;
 // console.log = () => {};

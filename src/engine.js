@@ -1,55 +1,46 @@
 `use strict`;
 
 const _ = require(`lodash`);
+const assert = require(`assert/strict`);
+const constants = require(`./constants`);
 const fs = require(`fs`);
 const utils = require(`./utils`);
-const real = require(`./real`);
+const setup = require(`./setup`);
 const Player = require(`./player`);
-
-require(`./constants`);
 
 class Engine {
   constructor() {
     console.log(`Engine starting up`);
 
-    const recover = JSON.parse(
-      fs.readFileSync(`./local/meta.json`, {
-        encoding: `utf8`,
-        flag: `a+`,
-      }) || `{}`
-    );
+    const opts = { encoding: `utf8`, flag: `a+` },
+      recover = JSON.parse(fs.readFileSync(`./local/meta.json`, opts));
 
     this.time = recover.time;
     this.interval = recover.interval;
 
     this.RNG = new utils.PRNG(...recover.RNG);
 
+    this.rooms = recover.rooms;
+
+    const system = { visible: () => true };
+    setup.create(this, this, system);
+    Object.assign(this, this.Game);
+
     this.players = _.mapValues(
       recover.players,
       (data, name) => new Player(data, name)
     );
 
-    this.rooms = _.mapValues(
-      recover.rooms,
-      (data, name) => new real.Room(this, data, name)
-    );
-
-    this.creeps = _.merge({}, ..._.map(this.rooms, `creeps`));
-    this.structures = _.merge({}, ..._.map(this.rooms, `structures`));
-
     // this.reset();
-    this.start();
-  }
-  start() {
     console.log(`  Engine started`);
-    this.ticked = 0;
-    this.startTime = new Date();
     this.runTick();
   }
   runTick() {
     console.log(`Engine start running at ${this.time}`);
     this.startTime = new Date();
 
+    this.schedule = new Map();
+    this.ticked = 0;
     _.forEach(this.players, (player) =>
       setImmediate(player.runTick.bind(player, this, this.endTick.bind(this)))
     );
@@ -61,22 +52,18 @@ class Engine {
       this.time++;
 
       _.forEach(this.rooms, (room) => room.update());
+      _.forEach(this.creeps, (creep) => creep.update());
+      _.forEach(this.structures, (structure) => structure.update());
 
-      const god = { visible: () => true };
-      fs.writeFileSync(`./local/meta.json`, JSON.stringify(this.recover(god)));
+      fs.writeFileSync(`./local/meta.json`, JSON.stringify(this.recover));
 
       const map = this.creeps.John.room.print;
       console.log(`print room ${this.creeps.John.room.name}`);
       console.log(map);
 
-      this.nextTick();
+      const interval = this.interval - (new Date() - this.startTime);
+      setTimeout(this.runTick.bind(this), interval);
     }
-  }
-  nextTick() {
-    setTimeout(
-      this.runTick.bind(this),
-      this.interval - (new Date() - this.startTime)
-    );
   }
   reset(seed = new Date()) {
     console.log(`Resetting engine using seed ${seed}`);
@@ -144,7 +131,10 @@ class Engine {
     //     `John`
     // );
   }
-  recover() {
+  getRoomData(roomName) {
+    return this.rooms[roomName].recover;
+  }
+  get recover() {
     const recover = {};
     recover.time = this.time;
     recover.interval = this.interval;
