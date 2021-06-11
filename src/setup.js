@@ -8,9 +8,11 @@ const Queue = require(`./queue`);
 
 /** construct prototypes for player from engine under context */
 function create(context, engine, player) {
-  /** Game class defination */
+  /**
+   * The main global game object containing all the game play information.
+   *
+   */
   class Game {
-    /** constructor for Game */
     constructor() {
       this.time = engine.time;
 
@@ -30,7 +32,20 @@ function create(context, engine, player) {
       const isSpawn = (structure) => structure instanceof StructureSpawn;
       this.spawns = _.mapKeys(_.pickBy(this.structures, isSpawn), `name`);
     }
-    /** Game.getObjectById */
+
+    /**
+     * Get an **RoomObject** with the specified unique ID.
+     * Only objects from the rooms which are visible to you can be accessed.
+     *
+     * @param {string} id The unique identificator.
+     *
+     * @returns {RoomObject} An object instance or undefined if it cannot be found.
+     *
+     * @example
+     * creep.memory.sourceId = creep.pos.findClosestByRange(FIND_SOURCES).id;
+     * const source = Game.getObjectById(creep.memory.sourceId);
+     *
+     */
     getObjectById(id) {
       const creeps = _.mapKeys(this.creeps, `id`),
         structures = this.structures;
@@ -38,15 +53,25 @@ function create(context, engine, player) {
     }
   }
 
-  /** Memory class defination */
-  class Memory {
-    /** constructor for Room */
-    constructor() {}
-  }
+  /**
+   * A global plain object which can contain arbitrary data.
+   * You can access it using the **Memory** API.
+   *
+   * @todo Add UI Memory interface.
+   *
+   */
+  class Memory {}
 
-  /** Room class defination */
+  /**
+   * An object representing the room in which your units and structures are in.
+   * It can be used to look around, find paths, etc.
+   * Every RoomObject in the room contains its linked Room instance in the room property.
+   *
+   * @todo Add RoomVisual.
+   * @todo Add getEnergyAvaliable.
+   *
+   */
   class Room {
-    /** constructor for Room */
     constructor(data, name) {
       this.name = name;
 
@@ -59,21 +84,78 @@ function create(context, engine, player) {
         Structure.new(structure, id, this)
       );
     }
+
     /** update room stats */
     update() {}
-    /** get Memory.rooms[roomName] */
+
+    /**
+     * A shorthand to Memory.rooms[room.name].
+     * You can use it for quick access the **Room**'s specific memory data object.
+     *
+     * @returns {Memory} Memory.rooms[this.name]
+     *
+     * @example
+     * room.memory.underAttack = true;
+     *
+     */
     get memory() {
       const rooms = (context.Memory.rooms = context.Memory.rooms || {});
       return (rooms[this.name] = rooms[this.name] || {});
     }
-    /** look for roomObjects at RoomPosition */
-    at(pos) {
-      const creeps = _.filter(Game.creeps, { pos: pos }),
-        structures = _.filter(Game.structures, { pos: pos });
-      return _.concat(creeps, structures);
+
+    /**
+     * Get the list of objects at the given room position.
+     *
+     * @param {RoomPosition|number} pos Can be a **RoomPosition** instance or any object containing **RoomPosition**.
+     * @param {?number} arg The y coordinate if **pos** is the x coordinate.
+     *
+     * @returns {[RoomObject|string]} An array with objects at the specified position in the following format:\
+     * [\
+     *   **TERRAIN_***,\
+     *   ...[**Creep**],\
+     *   ...[**Structure**]\
+     * ]
+     *
+     * @example
+     * const objects = creep.room.at(target);
+     * _.forEach(objects, (object) => {
+     *   if(object instanceof Creep &&
+     *     object.getActiveBodyparts(ATTACK) == 0) {
+     *     creep.say(`I will attack creep ${object.name}!`);
+     *     creep.moveTo(object);
+     *   }
+     * });
+     *
+     */
+    at(pos, arg) {
+      if (!(pos instanceof RoomPosition))
+        pos = new RoomPosition(pos, arg, this.name);
+      const terrain = this.terrain.at(this),
+        creeps = _.filter(context.Game.creeps, { pos: pos }),
+        structures = _.filter(context.Game.structures, { pos: pos });
+      return _.concat([terrain], creeps, structures);
     }
-    /** find objects within room */
-    find(type) {
+
+    /**
+     * Find all objects of the specified type in the room.
+     *
+     * @param {string} type One of the **FIND_*** constants.
+     * @param {?object} opts An object with additional options:\
+     * **filter** The result list will be filtered using the Lodash.filter method.
+     *
+     * @returns {[RoomObject]} An array with the objects found.
+     *
+     * @example
+     * const targets = creep.room.find(FIND_DROPPED_RESOURCES);
+     * if(targets.length) {
+     *     creep.moveTo(_.head(targets));
+     *     creep.pickup(_.head(targets));
+     * }
+     *
+     * @todo Complete opts.
+     *
+     */
+    find(type, opts = {}) {
       const creeps = _.filter(context.Game.creeps, { room: this }),
         structures = _.filter(context.Game.structures, { room: this });
       // if (type === FIND_EXITS) return findExits();
@@ -112,6 +194,7 @@ function create(context, engine, player) {
       // if (type === FIND_DEPOSITS)
       // if (type === FIND_RUINS)
     }
+
     /** get room terrain and objects in ASCII Array */
     get array() {
       const array = this.terrain.array,
@@ -124,11 +207,13 @@ function create(context, engine, player) {
       _.forEach(this.structures, draw);
       return array;
     }
+
     /** get room terrain and objects in String */
     get print() {
       const join = (row) => _.join(row, ``);
       return `|${_.join(_.map(this.array, join), `|\n|`)}|`;
     }
+
     /** get recovering data */
     get recover() {
       const recover = {};
@@ -139,10 +224,17 @@ function create(context, engine, player) {
     }
   }
 
-  /** RoomPosition class defination */
+  /**
+   * An object representing the specified position in the room.
+   * Every RoomObject in the room contains RoomPosition as the pos property.
+   * The position object of a custom location can be obtained using the Room.getPositionAt method or using the constructor.
+   *
+   * @todo Manage method visiablity.
+   *
+   */
   class RoomPosition {
-    /** constructor for RoomPosition */
-    constructor(coords, roomName) {
+    constructor(coords, roomName, arg) {
+      if (_.isNumber(coords)) return new RoomPisition([coords, roomName], arg);
       this.x = `x` in coords ? coords.x : coords[0];
       this.y = `y` in coords ? coords.y : coords[1];
       this.roomName = roomName || coords.roomName;
@@ -150,28 +242,33 @@ function create(context, engine, player) {
       assert(this.y >= 0 && this.y < ROOM_HEIGHT, `Invalid y coordinate!`);
       assert.match(this.roomName, /[WE]\d+[NS]\d+/, `Invalid room name!`);
     }
+
     /** get X coordinate in roomName */
     get X() {
       const [__, quad, coor] = /([WE])(\d+)[NS]\d+/.exec(this.roomName);
       if (quad === `W`) return -1 - Number(coor);
       if (quad === `E`) return Number(coor);
     }
+
     /** set X coordinate in roomName */
     set X(x) {
       const [__, rest] = /[WE]\d+([NS]\d+)/.exec(this.roomName);
       return (this.roomName = `${x >= 0 ? `E${x}` : `W${-1 - x}`}${rest}`);
     }
+
     /** get Y coordinate in roomName */
     get Y() {
       const [__, quad, coor] = /[WE]\d+([NS])(\d+)/.exec(this.roomName);
       if (quad === `N`) return -1 - Number(coor);
       if (quad === `S`) return Number(coor);
     }
+
     /** set Y coordinate in roomName */
     set Y(y) {
       const [__, rest] = /([WE]\d+)[NS]\d+/.exec(this.roomName);
       return (this.roomName = `${rest}${y >= 0 ? `S${y}` : `N${-1 - y}`}`);
     }
+
     /** convert to number */
     get [Symbol.toPrimitive]() {
       return (pref) => {
@@ -180,19 +277,38 @@ function create(context, engine, player) {
         if (pref === `number`) return this.x + this.y * ROOM_WIDTH;
       };
     }
-    /** look for objects here */
+
+    /**
+     * Get the list of objects here.\
+     * See Room.at.
+     *
+     */
     look() {
       const room = context.Game.rooms[this.roomName];
       assert(room !== undefined, `Invalid wild RoomPosition`);
-      const roomObjects = room.at(this),
-        terrain = room.terrain.at(this);
-      return _.concat([terrain], roomObjects);
+      return room.at(this);
     }
-    /** clone RoomPosition instance */
+
+    /**
+     * Detach and clone a **RoomPosition** instance.
+     *
+     * @returns {RoomPosition} A duplicate of instance.
+     *
+     */
     clone() {
       return new RoomPosition(this, this.roomName);
     }
-    /** move instance towards direction */
+
+    /**
+     * Move **RoomPosition** instance towards direction.
+     *
+     * @note This method modifies instance **in place**
+     *
+     * @param {string} dir The direction to move towards.
+     *
+     * @returns {RoomPosition} Moved instance.
+     *
+     */
     move(dir) {
       const [dx, dy] = utils.dxdy[dir];
       (this.x += dx), (this.y += dy);
@@ -223,26 +339,40 @@ function create(context, engine, player) {
     }
   }
 
-  /** RoomTerrain class defination */
+  /**
+   * An object which provides fast access to room terrain data.
+   *
+   */
   class RoomTerrain {
-    /** stringify array data */
+    /** Stringify terrain data to compact string. */
     static compress(data, sep = `,`) {
       return _.join(
         _.map(data, (row) => _.join(_.map(row, utils.symbolOf), ``)),
         sep
       );
     }
-    /** parse compressed terrain data */
+
+    /** Parse compressed terrain data. */
     static decompress(data, sep = `,`) {
       return _.map(_.split(data, sep), (row) =>
         _.map(_.split(row, ``), utils.meaningOf)
       );
     }
-    /** constructor for RoomTerrain */
+
     constructor(terrain) {
       this.data = terrain.data || RoomTerrain.decompress(terrain);
     }
-    /** get terrain at (x, y) or (RoomPosition, ) */
+
+    /**
+     * Get terrain type at the specified room position by (x, y) coordinates
+     * or given **RoomPosition** instance.
+     *
+     * @param {RoomPosition|number} x X position in the room or **RoomPosition** instance.
+     * @param {?number} x Y position in the room.
+     *
+     * @returns {stirng} One of the **TERRAIN_*** constant.
+     *
+     */
     at(x, y) {
       if (x instanceof RoomPosition) (y = x.y), (x = x.x);
       assert(x >= 0 && x < ROOM_WIDTH, `Invalid x coordinate!`);
@@ -250,15 +380,18 @@ function create(context, engine, player) {
       console.log(x, y);
       return this.data[y][x];
     }
+
     /** get terrain in ASCII Array */
     get array() {
       return _.map(this.data, (row) => _.map(row, utils.symbolOf));
     }
+
     /** get terrain in String */
     get print() {
       const join = (row) => _.join(row, ``);
       return `|${_.join(_.map(this.array, join), `|\n|`)}|`;
     }
+
     /** get recovering data */
     get recover() {
       const recover = RoomTerrain.compress(this.data);
@@ -266,8 +399,38 @@ function create(context, engine, player) {
     }
   }
 
-  /** constructor for PathFinder */
+  /**
+   * Contains powerful methods for pathfinding in the game world.
+   * This class is written in fast JavaScript code and supports
+   * custom navigation costs and paths which span multiple rooms.
+   *
+   * @todo Add range option
+   * @todo Add flee option
+   * @todo Optimize performance
+   * @todo Complete docs
+   *
+   */
   class PathFinder {
+    /**
+     * Constructor for PathFinder.
+     *
+     * @param {object} opts An object containing additional pathfinding flags.\
+     * **moveCost** \
+     * **roomCallback** Request from the pathfinder to generate a CostMatrix for a certain room.
+     * The callback accepts one argument, roomName.
+     * This callback will only be called once per room per search.
+     * If you are running multiple pathfinding operations in a single room and in a single tick you may consider caching your CostMatrix to speed up your code.
+     * If you return false from the callback the requested room will not be searched, and it won't count against maxRooms.\
+     * **maxOps** The maximum allowed pathfinding operations.
+     * The default value is 2000.\
+     * **maxCost** The maximum allowed cost of the path returned.
+     * If at any point the PathFinder detects that it is impossible to find a path with a cost less than or equal to maxCost it will immediately halt the search.
+     * The default is Infinity.\
+     * **heuristicWeight** Weight to apply to the heuristic in the A* formula F = G + weight * H.
+     * Use this option only if you understand the underlying A* algorithm mechanics!
+     * The default value is 1.2.
+     *
+     */
     constructor(opts = {}) {
       this.moveCost = {
         [TERRAIN_PLAIN]: opts.plainCost || MOVE_COST[TERRAIN_PLAIN],
@@ -281,14 +444,41 @@ function create(context, engine, player) {
           return _.map(_.flatten(terrain.data), (sym) => this.moveCost[sym]);
         });
       this.flee = opts.flee || false;
-      this.maxOps = opts.maxOps || 1000;
+      this.maxOps = opts.maxOps || 2000;
       this.maxCost = opts.maxCost || Infinity;
       this.heuristicWeight = opts.heuristicWeight || 1.2;
     }
-    /** TODO: Optimize performance! */
-    /** search for route from origin to goals with A* algorithm */
+
+    /**
+     * Search for optimial route from origin to goals with A* algorithm
+     *
+     * @param {RoomPosition} origin The start position.
+     * @param {RoomPosition|[RoomPosition]} goal A goal or an array of goals. If more than one goal is supplied then the cheapest path found out of all the goals will be returned.
+     *
+     * @returns {object} An object containing the following properties:\
+     * **path** An array of RoomPosition objects.\
+     * **ops**	Total number of operations performed before this path was calculated.\
+     * **cost** The total cost of the path as derived from plainCost, swampCost and any given CostMatrix instances.\
+     * **incomplete** If the pathfinder fails to find a complete path, this will be true.
+     * Note that path will still be populated with a partial path which represents the closest path it could find given the search parameters.
+     *
+     * @example
+     * const creep = Game.creeps.John,
+     *   sources = _.filter(Game.structures, {structureType: STRUCUTRE_SOURCE});
+     *
+     * const ret = new PathFinder().search(creep.pos, sources);
+     * if (ret.incomplete) creep.say(`I can't move to sources!`);
+     * else {
+     *   creep.say(`Moving towards sources!`);
+     *   creep.moveByPath(ret.path);
+     * }
+     *
+     */
     search(origin, goal) {
       if (!(goal instanceof Array)) goal = [goal];
+      goal = _.map(goal, (target) =>
+        target instanceof RoomPosition ? target : target.pos
+      );
       const goals = new Map(),
         heuristics = new Map(),
         moveCosts = new Map(),
@@ -349,9 +539,12 @@ function create(context, engine, player) {
     }
   }
 
-  /** RoomObject class defination */
+  /**
+   * Any object with a position in a room.
+   * Almost all game objects prototypes are derived from RoomObject.
+   *
+   */
   class RoomObject {
-    /** constructor for RoomObject */
     constructor(data, id, room) {
       this.id = id;
       this.room = room;
@@ -360,11 +553,13 @@ function create(context, engine, player) {
       this.hits = data.hits;
       this.hitsMax = data.hitsMax;
     }
+
     /** schedule player action */
     schedule(callback) {
       engine.schedule.set(this.id, callback);
       return this;
     }
+
     /** update scheduled action */
     update() {
       this.pos = this.pos.clamp();
@@ -380,6 +575,7 @@ function create(context, engine, player) {
       assert(_.isFunction(callback), `Invalid action name!`);
       return callback.call(this, ...arguments);
     }
+
     /** get recovering data */
     get recover() {
       const recover = {};
@@ -390,45 +586,56 @@ function create(context, engine, player) {
     }
   }
 
-  /** Store class defination */
+  /**
+   * An object that can contain resources in its cargo.
+   * Each **Store** has its limitations on the types of resources it can store, determined by its owner.
+   *
+   */
   class Store {
-    /** constructor for Store */
     constructor(data, limit, capacity) {
       this.store = data.store || data;
       this.limit = data.limit || limit;
       this.capacity = data.capacity || capacity;
     }
+
     /** get capacity for certain type of resources */
     getCapacity(type) {
       if (_.isUndefined(type) || _.includes(this.limit, type))
         return this.capacity;
       return 0;
     }
+
     /** set capacity */
     setCapacity(amount) {
       return (this.capacity = amount);
     }
+
     /** add capacity */
     addCapacity(amount) {
       return this.setCapacity(this.getCapacity() + amount);
     }
+
     /** get used amount for certain type of resources */
     getUsed(type) {
       if (type !== undefined) return this.store[type] || 0;
       return _.sum(_.values(this.store));
     }
+
     /** set used amount for certain type of resources */
     setUsed(type, amount) {
       return (this.store[type] = amount);
     }
+
     /** add used amount for certain type of resources */
     addUsed(type, amount) {
       return this.setUsed(type, this.getUsed(type) + amount);
     }
+
     /** get free capacity for certain type of resources */
     getFree(type) {
       return this.getCapacity(type) - this.getUsed(type);
     }
+
     /** get recovering data */
     get recover() {
       const recover = this.store;
@@ -436,9 +643,12 @@ function create(context, engine, player) {
     }
   }
 
-  /** Creep class defination inherited from RoomObject */
+  /**
+   * Creeps are your units.
+   * Creeps can move, harvest energy, construct structures, attack another creeps, and perform other actions.
+   *
+   */
   class Creep extends RoomObject {
-    /** constructor for Creep */
     constructor(data, name, room) {
       super(data, data.id, room);
       this.name = name;
@@ -463,18 +673,27 @@ function create(context, engine, player) {
       if (this.fatigue < 0) this.fatigue = 0;
     }
 
-    /** get Memory.creeps[name] */
+    /**
+     * A shorthand to Memory.creeps[creep.name].
+     * You can use it for quick access the **Creep**’s specific memory data object.
+     *
+     * @returns {Memory} Memory.creeps[this.name]
+     *
+     * @example
+     * creep.memory.task = `waitRescue`;
+     *
+     */
     get memory() {
       const creeps = (context.Memory.creeps = context.Memory.creeps || {});
       return (creeps[this.name] = creeps[this.name] || {});
     }
 
     /**
-     * Get the quantity of active bodyparts of given type
+     * Get the quantity of active bodyparts of given type.
      *
-     * @param {string} bodypart A body part type
+     * @param {string} bodypart A body part type.
      *
-     * @returns {number} A number representing the quantity of body parts
+     * @returns {number} A number representing the quantity of body parts.
      *
      * @example
      * const target = creep.pos.findClosestByRange(FIND_HOSTILE_CREEPS);
@@ -490,11 +709,11 @@ function create(context, engine, player) {
     }
 
     /**
-     * Schedule Creep move one square in given direction
+     * Schedule Creep move one square in given direction.
      *
-     * @param {string} dir Direction to move towards
+     * @param {string} dir The direction to move towards.
      *
-     * @returns {string} OK or ERR codes
+     * @returns {string} OK or ERR codes.
      *
      * @example
      * const John = Game.creeps.John,
@@ -520,12 +739,13 @@ function create(context, engine, player) {
     }
 
     /**
-     * Schedule Creep move by given predefined path\
-     * NOTE: This method consumes original path array!
+     * Schedule Creep move by given predefined path.
      *
-     * @param {[string]} path Array of directions as path
+     * @note This method modifies original path array **in place**.
      *
-     * @returns {string} OK or ERR codes
+     * @param {[string]} path Array of directions as path.
+     *
+     * @returns {string} OK or ERR codes.
      *
      * @example
      * const path = spawn.room.findPath(spawn, source).path;
@@ -540,11 +760,11 @@ function create(context, engine, player) {
     }
 
     /**
-     * Schedule Creep move to given target
+     * Schedule Creep move to given target.
      *
-     * @param {RoomPosition|RoomObject} target RoomPosition or Object.pos is RoomPosition
+     * @param {RoomPosition|RoomObject} target RoomPosition or Object.pos is RoomPosition.
      *
-     * @returns {string} OK or ERR codes
+     * @returns {string} OK or ERR codes.
      *
      * @example
      * creep.moveTo(25, 25, {reusePath: 10});
