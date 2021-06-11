@@ -278,9 +278,7 @@ function create(context, engine, player) {
         opts.roomCallback ||
         ((roomName) => {
           const terrain = context.Game.rooms[roomName].terrain;
-          return _.map(terrain.data, (row) =>
-            _.map(row, (sym) => this.moveCost[sym])
-          );
+          return _.map(_.flatten(terrain.data), (sym) => this.moveCost[sym]);
         });
       this.flee = opts.flee || false;
       this.maxOps = opts.maxOps || 1000;
@@ -299,20 +297,21 @@ function create(context, engine, player) {
         heuristic = (pos) => {
           if (!heuristics.has(pos.roomName)) heuristics.set(pos.roomName, []);
           const room = heuristics.get(pos.roomName);
-          if (room[pos] != undefined) return room[pos];
-          return (room[pos] =
-            _.min(_.map(goal, pos.getRangeTo)) * this.heuristicWeight);
+          if (room[+pos] != undefined) return room[+pos];
+          room[+pos] =
+            _.min(_.map(goal, pos.getRangeTo.bind(pos))) * this.heuristicWeight;
+          return room[+pos];
         },
         moveCost = (pos) => {
           if (!moveCosts.has(pos.roomName))
             moveCosts.set(pos.roomName, this.roomCallback(pos.roomName));
-          return moveCosts.get(pos.roomName);
+          return moveCosts.get(pos.roomName)[+pos];
         },
         explore = (pos, ppos, dir, dis, heu) => {
           if (!internals.has(pos.roomName)) internals.set(pos.roomName, []);
           const room = internals.get(pos.roomName);
-          if (room[pos] === undefiend || _.head(room[pos]) > score) {
-            room[pos] = [dis, dir, ppos];
+          if (_.isUndefined(room[+pos]) || _.head(room[+pos]) > dis) {
+            room[+pos] = [dis, dir, ppos];
             frontiers.push([dis + heu, dis, pos]);
           }
         },
@@ -321,7 +320,7 @@ function create(context, engine, player) {
           if (_.isEqual(pos, origin))
             return Object.assign(info, { path, poss });
           const room = internals.get(pos.roomName),
-            [_dis, dir, ppos] = room[pos];
+            [_dis, dir, ppos] = room[+pos];
           path.unshift(dir);
           return reconstruct(ppos, info, path, poss);
         };
@@ -331,17 +330,17 @@ function create(context, engine, player) {
         room.add(Number(pos));
       });
       let [range, cost, ops, nearest] = [heuristic(origin), 0, 0, origin];
-      frontiers.push([heu, 0, origin]);
+      frontiers.push([range, 0, origin]);
       for (; ops < this.maxOps; ops++) {
-        const top = frontier.pop();
-        if (top === undefined) break;
+        const top = frontiers.pop();
+        if (_.isUndefined(top)) break;
         const [score, dis, pos] = top;
         if (range > score - dis)
           [range, cost, nearest] = [score - dis, dis, pos];
         const room = goals.get(pos.roomName);
         if (room !== undefined && room.has(Number(pos))) break;
         _.forEach(utils.dirs, (dir) => {
-          const npos = move(pos.clone(), dir).clamp();
+          const npos = pos.clone().move(dir).clamp();
           explore(npos, pos, dir, dis + moveCost(npos), heuristic(npos));
         });
       }
@@ -401,7 +400,7 @@ function create(context, engine, player) {
     }
     /** get capacity for certain type of resources */
     getCapacity(type) {
-      if (type === undefined || _.includes(this.limit, type))
+      if (_.isUndefined(type) || _.includes(this.limit, type))
         return this.capacity;
       return 0;
     }
@@ -455,6 +454,7 @@ function create(context, engine, player) {
         this.getActiveBodyparts(CARRY) * CARRY_CAPACITY
       );
     }
+
     /** update creep state */
     update() {
       super.update(...arguments);
@@ -462,25 +462,46 @@ function create(context, engine, player) {
       this.fatigue -= this.getActiveBodyparts(MOVE) * (MOVE_POWER + 1);
       if (this.fatigue < 0) this.fatigue = 0;
     }
+
     /** get Memory.creeps[name] */
     get memory() {
       const creeps = (context.Memory.creeps = context.Memory.creeps || {});
       return (creeps[this.name] = creeps[this.name] || {});
     }
-    /** get active bodyparts of certain type */
+
+    /**
+     * Get the quantity of active bodyparts of given type
+     *
+     * @param {string} bodypart A body part type
+     *
+     * @returns {number} A number representing the quantity of body parts
+     *
+     * @example
+     * const target = creep.pos.findClosestByRange(FIND_HOSTILE_CREEPS);
+     * if(target && target.getActiveBodyparts(ATTACK) === 0) {
+     *   creep.moveTo(target);
+     *   creep.say(`I'm going to attack ${target.name}!`);
+     * }
+     *
+     */
     getActiveBodyparts(bodypart) {
       const filter = bodypart ? (part) => part === bodypart : (part) => true;
       return _.sumBy(this.body, filter);
     }
+
     /**
-     * Schedule Creep move by direction
-     * @param {string} dir direction to move towards
+     * Schedule Creep move one square in given direction
+     *
+     * @param {string} dir Direction to move towards
+     *
      * @returns {string} OK or ERR codes
+     *
      * @example
-     *   const John = Game.creeps.John,
-     *     ret = John.move(TOP);
-     *   if (ret === OK)
-     *     console.log(`John will move towards TOP`);
+     * const John = Game.creeps.John,
+     *   ret = John.move(TOP);
+     * if (ret === OK)
+     *   John.say(`I'm moving towards ${TOP}!`);
+     *
      */
     move(dir) {
       if (!this.my) return ERR_NOT_OWNER;
@@ -489,7 +510,6 @@ function create(context, engine, player) {
       if (this.fatigue > 0) return ERR_TIRED;
       const pos = this.pos.clone().move(dir),
         objects = pos.look();
-      console.log(_.head(objects));
       if (_.head(objects) === TERRAIN_WALL) return ERR_NO_PATH;
       if (!_.every(_.tail(objects), `walkable`)) return ERR_NO_PATH;
       this.schedule(function () {
@@ -498,18 +518,71 @@ function create(context, engine, player) {
       });
       return OK;
     }
+
     /**
-     * Schedule Creep move by path
+     * Schedule Creep move by given predefined path\
+     * NOTE: This method consumes original path array!
+     *
      * @param {[string]} path Array of directions as path
+     *
      * @returns {string} OK or ERR codes
-     * @returns {string} OK or ERR codes
+     *
      * @example
-     *   const John = Game.creeps.John,
-     *     ret = John.move(TOP);
-     *   if (ret === OK)
-     *     console.log(`John will move towards TOP`);
+     * const path = spawn.room.findPath(spawn, source).path;
+     * creep.moveByPath(path);
      */
-    moveByPath(path) {}
+    moveByPath(path) {
+      if (!this.my) return ERR_NOT_OWNER;
+      if (!this.getActiveBodyparts(MOVE)) return ERR_NO_BODYPART;
+      if (!_.isArray(path)) return ERR_INVALID_ARGS;
+      if (path.length === 0) return ERR_NO_PATH;
+      return this.move(path.shift());
+    }
+
+    /**
+     * Schedule Creep move to given target
+     *
+     * @param {RoomPosition|RoomObject} target RoomPosition or Object.pos is RoomPosition
+     *
+     * @returns {string} OK or ERR codes
+     *
+     * @example
+     * creep.moveTo(25, 25, {reusePath: 10});
+     *
+     * @example
+     * creep.moveTo(new RoomPosition(25, 20, `W10N5`));
+     *
+     * @example
+     * const source = creep.pos.findClosestByRange(STRUCTURE, {
+     *   filter: {structureType: STRUCTURE_SOURCE}
+     * });
+     * creep.moveTo(source);
+     *
+     */
+    moveTo(target, arg = {}, opts = {}) {
+      if (!this.my) return ERR_NOT_OWNER;
+      if (!this.getActiveBodyparts(MOVE)) return ERR_NO_BODYPART;
+      if (_.isUndefined(target) || _.isNull(target)) return ERR_INVALID_ARGS;
+      if (!(target instanceof RoomPosition)) {
+        if (target.pos instanceof RoomPosition)
+          (target = target.pos), (opts = arg);
+        else target = new RoomPosition(target, arg, this.room.name);
+      }
+      if (!(target instanceof RoomPosition)) return ERR_INVALID_ARGS;
+      const serialize = opts.serialize || _.isUndefined(opts.serialize);
+      let path = this.memory._path,
+        pos = [target];
+      if (serialize) path = _.map(path, (code) => utils.dirs[code]);
+      const noPathFinding = opts.noPathFinding,
+        reusePath = _.isNumber(opts.reusePath) ? opts.reusePath + 1 : 5 + 1;
+      if (path.length === 0 && !noPathFinding)
+        path = _.take(new PathFinder().search(this.pos, pos).path, reusePath);
+      const ret = this.moveByPath(path);
+      if (serialize) path = _.map(path, (dir) => utils.dirCodes[dir]).join(``);
+      this.memory._path = path;
+      return ret;
+    }
+
     /** get recovering data */
     get recover() {
       const recover = super.recover;
@@ -523,39 +596,6 @@ function create(context, engine, player) {
     }
   }
 
-  // /** Creep.moveByPath */
-  // Creep.prototype.moveByPath = function (path) {
-  //   if (!(path instanceof Array)) return ERR_INVALID_ARGS;
-  //   const dir = _.head(path);
-  //   if (dir === undefined) return ERR_NO_PATH;
-  //   return this.move(dir);
-  // };
-
-  // /** Creep.moveTo */
-  // Creep.prototype.moveTo = function (pos, opts = {}, arg = {}) {
-  //   if (!(pos instanceof RoomPosition)) {
-  //     if (pos.pos instanceof RoomPosition) pos = pos.pos;
-  //     else (pos = new RoomPosition(pos, opts, this.room.name)), (opts = arg);
-  //   }
-  //   if (pos === undefined || pos === null) return ERR_INVALID_ARGS;
-  //   if (_.isEqual(this.pos, pos)) return OK;
-  //   const serializeMemory =
-  //     opts.serializeMemory || opts.serializeMemory === undefined;
-  //   let path = this.memory._move;
-  //   if (serializeMemory) path = _.map(path, (code) => utils.dirs[code]);
-  //   const noPathFinding = opts.noPathFinding,
-  //     reusePath = opts.reusePath || 5;
-  //   if (_.head(path) === undefined && !noPathFinding)
-  //     path = _.take(new PathFinder().search(this.pos, pos).path, reusePath);
-  //   const ret = this.moveByPath(path);
-  //   if (ret === OK) path = _.tail(path);
-  //   if (serializeMemory)
-  //     (path = _.map(path, (dir) => utils.dirCodes[dir])),
-  //       (path = _.join(path, ``));
-  //   this.memory._move = path;
-  //   return ret;
-  // };
-
   /** Structure class defination inherited from RoomObjects */
   class Structure extends RoomObject {
     static new(data, ...args) {
@@ -567,7 +607,7 @@ function create(context, engine, player) {
       super(...arguments);
 
       this.structureType = data.structureType;
-      this.walkable = !_.includes(OBSTACLE_OBJECT_TYPES, this.structureType);
+      this.walkable = _.includes(WALKABLE_OBJECT_TYPES, this.structureType);
     }
     /** update structure state */
     update() {
@@ -699,7 +739,7 @@ function create(context, engine, player) {
     }
     /** spawnCreep */
     spawnCreep(body, name, opts) {
-      if (name === undefined) return ERR_INVALID_ARGS;
+      if (_.isUndefined(name)) return ERR_INVALID_ARGS;
       if (_.sumBy(body, (bodypart) => !_.includes(CREEP_BODYPARTS, bodypart)))
         return ERR_INVALID_ARGS;
       if (this.engine.creeps[name] !== undefined) return ERR_NAME_EXISTS;

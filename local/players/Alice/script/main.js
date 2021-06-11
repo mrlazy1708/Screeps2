@@ -22,8 +22,20 @@
 const room = Game.rooms.W0N0;
 console.log(Game.time, room.name);
 
+// // const controller = room.controller;
+// // console.log1(controller.id, controller.pos);
+
 // const controller = room.controller;
-// console.log1(controller.id, controller.pos);
+// console.log(
+//   `controller`,
+//   controller.id,
+//   controller.level,
+//   controller.progress,
+//   controller.progressTotal
+// );
+
+const creep = Game.creeps.John;
+console.log(`creep`, creep.id, creep.pos, creep.store.getUsed(RESOURCE_ENERGY));
 
 const source = _.head(
   _.filter(room.find(FIND_STRUCTURES), {
@@ -37,19 +49,7 @@ console.log(
   source.ticksToRegeneration
 );
 
-const controller = room.controller;
-console.log(
-  `controller`,
-  controller.id,
-  controller.level,
-  controller.progress,
-  controller.progressTotal
-);
-
-const creep = Game.creeps.John;
-console.log(`creep`, creep.id, creep.store.getUsed(RESOURCE_ENERGY));
-
-// console.log(creep.move(LEFT));
+console.log(creep.moveTo(source));
 
 // const ret1 = creep.upgradeController(controller);
 // console.log(ret1);

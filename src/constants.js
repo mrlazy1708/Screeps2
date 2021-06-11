@@ -10,21 +10,17 @@ Object.assign(module.exports, {
 
 Object.assign(global, module.exports);
 Object.assign(module.exports, {
-  /**
-   * Directions in 2D shard
-   * @typedef {string} direction
-   */
+  /** directions */
+  TOP: `Top`,
+  TOP_RIGHT: `Top-Right`,
+  RIGHT: `Right`,
+  BOTTOM_RIGHT: `Bottom-Right`,
+  BOTTOM: `Bottom`,
+  BOTTOM_LEFT: `Bottom-Left`,
+  LEFT: `Left`,
+  TOP_LEFT: `Top-Left`,
 
-  /** @type direction */ TOP: `Top`,
-  /** @type direction */ TOP_RIGHT: `Top-Right`,
-  /** @type direction */ RIGHT: `Right`,
-  /** @type direction */ BOTTOM_RIGHT: `Bottom-Right`,
-  /** @type direction */ BOTTOM: `Bottom`,
-  /** @type direction */ BOTTOM_LEFT: `Bottom-Left`,
-  /** @type direction */ LEFT: `Left`,
-  /** @type direction */ TOP_LEFT: `Top-Left`,
-
-  /**  */
+  /** colors */
   COLOR_RED: 0,
   COLOR_PURPLE: 1,
   COLOR_BLUE: 2,
@@ -131,6 +127,7 @@ Object.assign(module.exports, {
     [STRUCTURE_ROAD]: 1,
     [TERRAIN_PLAIN]: 2,
     [TERRAIN_SWAMP]: 10,
+    [TERRAIN_WALL]: Infinity,
   },
   /** work */
   BUILD_POWER: 5,
@@ -189,24 +186,6 @@ Object.assign(module.exports, {
     [STRUCTURE_TOWER]    : [0,    0,    0,    1,    1,    2,    2,    3,    6   ],
     [STRUCTURE_WALL]     : [0,    0,    2500, 2500, 2500, 2500, 2500, 2500, 2500],
   },
-  OBSTACLE_OBJECT_TYPES: [
-    CREEP,
-    STRUCTURE_CONTROLLER,
-    STRUCTURE_EXTENSION,
-    STRUCTURE_FACTORY,
-    STRUCTURE_INVADER_CORE,
-    STRUCTURE_LAB,
-    STRUCTURE_LINK,
-    STRUCTURE_MINERAL,
-    STRUCTURE_NUKER,
-    STRUCTURE_OBSERVER,
-    STRUCTURE_SOURCE,
-    STRUCTURE_SPAWN,
-    STRUCTURE_STORAGE,
-    STRUCTURE_TERMINAL,
-    STRUCTURE_TOWER,
-    STRUCTURE_WALL,
-  ],
   /** container */
   CONTAINER_CAPACITY: 2000,
   CONTAINER_DECAY_AMOUNT: 5000,
