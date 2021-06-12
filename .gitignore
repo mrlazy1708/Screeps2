@@ -1,1 +1,6 @@
 .DS_Store
+node_modules/
+note.md
+ofdoc.md
+package.json
+package-lock.json

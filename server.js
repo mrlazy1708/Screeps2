@@ -1,3 +1,5 @@
+/** @format */
+
 `use strict`;
 
 const _ = require(`lodash`);
@@ -28,9 +30,12 @@ http
         } else if (url === `/index.js`) {
           response.writeHead(200, { "content-Type": "text/javascript" });
           fs.createReadStream("./remote/index.js").pipe(response);
+        } else if (url === `/display.js`) {
+          response.writeHead(200, { "content-Type": "text/javascript" });
+          fs.createReadStream("./remote/display.js").pipe(response);
         } else {
           response.writeHead(404, { "content-Type": "text/plain" });
-          response.end(`YOU SPELLED IT WRONG`);
+          // response.end(`YOU SPELLED IT WRONG`);
         }
       }
     });
@@ -39,4 +44,4 @@ http
 
 console.log(`Server running at http://127.0.0.1:8080/`);
 console.log1 = console.log;
-// console.log = () => {};
+console.log = () => {};
