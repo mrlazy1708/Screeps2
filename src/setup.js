@@ -130,7 +130,7 @@ function create(context, engine, player) {
     at(pos, arg) {
       if (!(pos instanceof RoomPosition))
         pos = new RoomPosition(pos, arg, this.name);
-      const terrain = this.terrain.at(this),
+      const terrain = this.terrain.at(pos),
         creeps = _.filter(context.Game.creeps, { pos: pos }),
         structures = _.filter(context.Game.structures, { pos: pos });
       return _.concat([terrain], creeps, structures);
@@ -324,6 +324,8 @@ function create(context, engine, player) {
     }
     /** get range to another RoomPosition */
     getRangeTo(pos) {
+      if (_.isUndefined(pos) || _.isNull(pos)) return ERR_INVALID_ARGS;
+      if (!(pos instanceof RoomPosition)) pos = pos.pos;
       if (!(pos instanceof RoomPosition)) return ERR_INVALID_ARGS;
       const [tX, tY] = utils.parse(this.roomName),
         [pX, pY] = utils.parse(pos.roomName);
@@ -377,7 +379,6 @@ function create(context, engine, player) {
       if (x instanceof RoomPosition) (y = x.y), (x = x.x);
       assert(x >= 0 && x < ROOM_WIDTH, `Invalid x coordinate!`);
       assert(y >= 0 && y < ROOM_HEIGHT, `Invalid y coordinate!`);
-      console.log(x, y);
       return this.data[y][x];
     }
 
@@ -562,6 +563,10 @@ function create(context, engine, player) {
 
     /** update scheduled action */
     update() {
+      if (!engine.schedule.has(this.id)) return;
+      const callback = engine.schedule.get(this.id);
+      assert(_.isFunction(callback), `Invalid action name!`);
+      const ret = callback.call(this, ...arguments);
       this.pos = this.pos.clamp();
       if (this.room.name != this.pos.roomName) {
         if (this instanceof Creep) delete this.room.creeps[this.name];
@@ -570,10 +575,7 @@ function create(context, engine, player) {
         if (this instanceof Creep) this.room.creeps[this.name] = this;
         if (this instanceof Structure) this.room.structures[this.id] = this;
       }
-      if (!engine.schedule.has(this.id)) return;
-      const callback = engine.schedule.get(this.id);
-      assert(_.isFunction(callback), `Invalid action name!`);
-      return callback.call(this, ...arguments);
+      return ret;
     }
 
     /** get recovering data */
@@ -752,6 +754,7 @@ function create(context, engine, player) {
      * creep.moveByPath(path);
      */
     moveByPath(path) {
+      console.log(path);
       if (!this.my) return ERR_NOT_OWNER;
       if (!this.getActiveBodyparts(MOVE)) return ERR_NO_BODYPART;
       if (!_.isArray(path)) return ERR_INVALID_ARGS;
@@ -801,6 +804,73 @@ function create(context, engine, player) {
       if (serialize) path = _.map(path, (dir) => utils.dirCodes[dir]).join(``);
       this.memory._path = path;
       return ret;
+    }
+
+    /**
+     * Schedule Creep harvest Source, Mineral or Deposit
+     *
+     * @param {RoomObject} target The object to be harvested.
+     *
+     * @returns {string} OK or ERR codes.
+     *
+     * @example
+     * const target = creep.pos.findClosestByRange(FIND_SOURCES_ACTIVE);
+     * if(target && creep.harvest(target) == ERR_NOT_IN_RANGE)
+     *   creep.moveTo(target);
+     *
+     */
+    harvest(target) {
+      if (!this.my) return ERR_NOT_OWNER;
+      if (target instanceof StructureSource) {
+        if (!this.getActiveBodyparts(WORK)) return ERR_NO_BODYPART;
+        if (this.pos.getRangeTo(target) > HARVEST_RANGE)
+          return ERR_NOT_IN_RANGE;
+        const amount1 = target.store.getUsed(RESOURCE_ENERGY);
+        if (amount1 <= 0) return ERR_NOT_ENOUGH_RESOURCES;
+        const amount2 = this.store.getFree(RESOURCE_ENERGY);
+        if (amount2 <= 0) return ERR_FULL;
+        let amount = this.getActiveBodyparts(WORK) * HARVEST_SOURCE_POWER;
+        amount = Math.min(amount, amount1, amount2);
+        this.schedule(function () {
+          this.store.addUsed(RESOURCE_ENERGY, amount);
+        });
+        target.schedule(function () {
+          this.store.addUsed(RESOURCE_ENERGY, -amount);
+        });
+        return OK;
+      }
+      return ERR_INVALID_ARGS;
+    }
+
+    /**
+     * Schedule Creep upgeade controller to next level.
+     *
+     * @param {StructureController} target The target controller object to be upgraded.
+     *
+     * @returns {string} OK or ERR codes.
+     *
+     * @example
+     * if(creep.room.controller && creep.upgradeController(creep.room.controller) == ERR_NOT_IN_RANGE)
+     *    creep.moveTo(creep.room.controller);
+     *
+     */
+    upgradeController(target) {
+      if (!this.my) return ERR_NOT_OWNER;
+      if (!this.getActiveBodyparts(WORK)) return ERR_NO_BODYPART;
+      if (!(target instanceof StructureController)) return ERR_INVALID_ARGS;
+      if (this.pos.getRangeTo(target) > UPGRADE_CONTROLLER_RANGE)
+        return ERR_NOT_IN_RANGE;
+      const amount1 = this.store.getUsed(RESOURCE_ENERGY);
+      if (amount1 <= 0) return ERR_NOT_ENOUGH_RESOURCES;
+      let amount = this.getActiveBodyparts(WORK) * UPGRADE_CONTROLLER_POWER;
+      amount = Math.min(amount, amount1);
+      target.schedule(function () {
+        this.progress += amount;
+      });
+      this.schedule(function () {
+        this.store.addUsed(RESOURCE_ENERGY, -amount);
+      });
+      return OK;
     }
 
     /** get recovering data */

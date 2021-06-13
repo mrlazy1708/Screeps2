@@ -22,8 +22,25 @@
 const room = Game.rooms.W0N0;
 console.log(Game.time, room.name);
 
-// // const controller = room.controller;
-// // console.log1(controller.id, controller.pos);
+const creep = Game.creeps.John;
+console.log(`creep`, creep.id, creep.pos, creep.store.getUsed(RESOURCE_ENERGY));
+
+const dirs = [
+  TOP,
+  TOP_RIGHT,
+  RIGHT,
+  BOTTOM_RIGHT,
+  BOTTOM,
+  BOTTOM_LEFT,
+  LEFT,
+  TOP_LEFT,
+];
+for (let i = 0; i < 10; i++) {
+  const r = Math.floor(Math.random() * 8);
+  const ret = creep.move(dirs[r]);
+  console.log(ret);
+  if (ret === OK) break;
+}
 
 // const controller = room.controller;
 // console.log(
@@ -34,28 +51,42 @@ console.log(Game.time, room.name);
 //   controller.progressTotal
 // );
 
-const creep = Game.creeps.John;
-console.log(`creep`, creep.id, creep.pos, creep.store.getUsed(RESOURCE_ENERGY));
+// const source = _.head(
+//   _.filter(room.find(FIND_STRUCTURES), {
+//     structureType: STRUCTURE_SOURCE,
+//   })
+// );
+// console.log(
+//   `source`,
+//   source.id,
+//   source.store.getUsed(RESOURCE_ENERGY),
+//   source.ticksToRegeneration
+// );
 
-const source = _.head(
-  _.filter(room.find(FIND_STRUCTURES), {
-    structureType: STRUCTURE_SOURCE,
-  })
-);
-console.log(
-  `source`,
-  source.id,
-  source.store.getUsed(RESOURCE_ENERGY),
-  source.ticksToRegeneration
-);
+// creep.memory.task = creep.memory.task || "harvest";
 
-console.log(creep.moveTo(source));
+// if (
+//   creep.memory.task === "harvest" &&
+//   creep.store.getFree(RESOURCE_ENERGY) === 0
+// )
+//   creep.memory.task = "upgrade";
 
-// const ret1 = creep.upgradeController(controller);
-// console.log(ret1);
-// if (ret1 === ERR_NOT_IN_RANGE) console.log(creep.moveTo(controller));
-// if (ret1 === ERR_NOT_ENOUGH_RESOURCES) {
-//   const ret2 = creep.harvest(source);
-//   console.log(ret2);
-//   if (ret2 === ERR_NOT_IN_RANGE) console.log(creep.moveTo(source));
-// }
+// if (
+//   creep.memory.task === "upgrade" &&
+//   creep.store.getUsed(RESOURCE_ENERGY) === 0
+// )
+//   creep.memory.task = "harvest";
+
+// const ret1 =
+//   creep.memory.task === "harvest"
+//     ? creep.harvest(source)
+//     : creep.upgradeController(controller);
+// console.log(creep.memory.task, ret1);
+// if (ret1 === ERR_NOT_IN_RANGE)
+//   console.log(
+//     `move to`,
+//     creep.memory.task,
+//     creep.memory.task === "harvest"
+//       ? creep.moveTo(source)
+//       : creep.moveTo(controller)
+//   );

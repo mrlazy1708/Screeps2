@@ -347,9 +347,9 @@ Object.assign(module.exports, {
   /** requirement error */
   ERR_FULL: `Error: Full`,
   ERR_TIRED: `Error: Tired`,
-  ERR_NOT_ENOUGH_RESOURCES: `Error: Resources Not Enough`,
-  ERR_NOT_ENOUGH_RCL: `Error: RCL Not Enough`,
-  ERR_NOT_ENOUGH_GCL: `Error: GCL Not Enough`,
+  ERR_NOT_ENOUGH_RESOURCES: `Error: Not Enough Resources`,
+  ERR_NOT_ENOUGH_RCL: `Error: Not Enough RCL`,
+  ERR_NOT_ENOUGH_GCL: `Error: Not Enough GCL`,
   /** specific errors */
   ERR_NO_PATH: `Error: No Path`,
   ERR_NAME_EXISTS: `Error: Name Exists`,
