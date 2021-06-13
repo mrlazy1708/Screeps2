@@ -8,7 +8,8 @@ const SWAMP_COLOR = 0x2f4f4f;
 const MARGIN_COLOR = 0x222222;
 const SOURCE_COLOR = 0xffd700;
 const CONTRPLLER_COLOR = 0xffffff;
-const RESOLUTION = 3;
+const CREEP_COLOR = 0xffffff;
+const RESOLUTION = 1;
 const X_SIZE = 64;
 const Y_SIZE = 64;
 const BLOCK_SIZE = Math.min(
@@ -26,7 +27,8 @@ const alert_style = new TextStyle({
 
 export class Display {
   constructor() {
-    this.init_over = false;
+    this.refresh = true;
+
     this.app = new Application({
       width: window.outerWidth,
       height: window.outerHeight,
@@ -35,27 +37,96 @@ export class Display {
     document.body.appendChild(this.app.view);
     this.app.renderer.backgroundColor = MARGIN_COLOR;
 
-    this.main_map = new Container();
-    this.creeps = new Container();
-    this.structures = new Container();
-    this.map_bgd = new Graphics();
-    this.main_map.addChild(this.map_bgd);
-    this.app.stage.addChild(this.main_map);
-    this.app.stage.addChild(this.creeps);
-    this.app.stage.addChild(this.structures);
     this.ticker = this.app.ticker;
 
-    this.terrain_blocks = this.new_grid();
-    this.structure_blocks = new Array();
-    this.creep_list = new Array();
+    this.Terrain = new Object();
+    this.Creep = new Object();
+    this.Structure = new Object();
+    this.Terrain.canvas = new Container();
+    this.Creep.canvas = new Container();
+    this.Structure.canvas = new Container();
 
-    this.text = new Text("loading...", alert_style);
-    let x = (MAP_SIZE_X - this.text.width) / 2;
-    let y = (MAP_SIZE_Y - this.text.height) / 2;
-    this.text.position.set(x, y);
+    this.app.stage.addChild(this.Terrain.canvas);
+    this.app.stage.addChild(this.Creep.canvas);
+    this.app.stage.addChild(this.Structure.canvas);
+
+    this.Terrain.background = new Graphics();
+    this.Terrain.canvas.addChild(this.Terrain.background);
+    this.Terrain.list = this.new_grid(this.Terrain.canvas);
+    this.Creep.list = new Array();
+    this.Structure.list = new Array();
+
+    this.GameText = new Object();
+    this.GameText.loading_text = new Text("loading...", alert_style);
+    this.GameText.loading_text.position.set(
+      (MAP_SIZE_X - this.GameText.loading_text.width) / 2,
+      (MAP_SIZE_Y - this.GameText.loading_text.height) / 2
+    );
   }
-  draw_terrain(info) {
-    this.map_bgd
+  new_grid(canvas) {
+    const grid = new Array();
+    for (let i = 0; i != X_SIZE; i++) {
+      const row = new Array();
+      for (let j = 0; j != Y_SIZE; j++) {
+        const block = new Graphics();
+        block.position.set(i * BLOCK_SIZE, j * BLOCK_SIZE);
+        row.push(block);
+        canvas.addChild(block);
+      }
+      grid.push(row);
+    }
+    return grid;
+  }
+  new_center_grid(canvas) {
+    const grid = new Array();
+    for (let i = 0; i != X_SIZE; i++) {
+      const row = new Array();
+      for (let j = 0; j != Y_SIZE; j++) {
+        const block = new Graphics();
+        block.position.set(
+          i * BLOCK_SIZE + BLOCK_SIZE / 2,
+          j * BLOCK_SIZE + BLOCK_SIZE / 2
+        );
+        row.push(block);
+        canvas.addChild(block);
+      }
+      grid.push(row);
+    }
+    return grid;
+  }
+  refresh_source(info) {
+    let source = new Graphics();
+    source.position.set(
+      info.pos[0] * BLOCK_SIZE + BLOCK_SIZE / 2,
+      info.pos[1] * BLOCK_SIZE + BLOCK_SIZE / 2
+    );
+    source
+      .beginFill(SOURCE_COLOR)
+      .drawRect(
+        -0.475 * BLOCK_SIZE,
+        -0.475 * BLOCK_SIZE,
+        0.95 * BLOCK_SIZE,
+        0.95 * BLOCK_SIZE
+      )
+      .endFill();
+    this.Structure.canvas.addChild(source);
+    this.Structure.list.push(source);
+  }
+  refresh_controller(info) {
+    let controller = new Graphics();
+    controller.position.set(
+      info.pos[0] * BLOCK_SIZE + BLOCK_SIZE / 2,
+      info.pos[1] * BLOCK_SIZE + BLOCK_SIZE / 2
+    );
+    controller
+      .beginFill(CONTRPLLER_COLOR)
+      .drawCircle(0, 0, 0.5 * BLOCK_SIZE)
+      .endFill();
+    this.Structure.canvas.addChild(controller);
+    this.Structure.list.push(controller);
+  }
+  refresh_terrain(info) {
+    this.Terrain.background
       .beginFill(BGD_COLOR)
       .drawRect(0, 0, MAP_SIZE_X, MAP_SIZE_Y)
       .endFill();
@@ -69,103 +140,62 @@ export class Display {
         } else if (terrain[i][j] === "~") {
           color = SWAMP_COLOR;
         }
-        this.terrain_blocks[j][i]
+        this.Terrain.list[j][i]
           .beginFill(color)
           .drawRect(0, 0, BLOCK_SIZE, BLOCK_SIZE, 5)
           .endFill();
       }
     }
   }
-  draw_source(info) {
-    let source = new Graphics();
-    source.position.set(
-      info.pos[0] * BLOCK_SIZE + BLOCK_SIZE / 2,
-      info.pos[1] * BLOCK_SIZE + BLOCK_SIZE / 2
-    );
-    source
-      .beginFill(SOURCE_COLOR)
-      .drawRect(
-        -0.475 * BLOCK_SIZE,
-        -0.475 * BLOCK_SIZE,
-        0.95 * BLOCK_SIZE,
-        0.95 * BLOCK_SIZE,
-      )
-      .endFill();
-    this.structures.addChild(source);
-  }
-  draw_controller(info) {
-    let controller = new Graphics();
-    controller.position.set(
-      info["pos"][0] * BLOCK_SIZE + BLOCK_SIZE / 2,
-      info["pos"][1] * BLOCK_SIZE + BLOCK_SIZE / 2
-    );
-    controller
-      .beginFill(CONTRPLLER_COLOR)
-      .drawCircle(0, 0, 0.5 * BLOCK_SIZE)
-      .endFill();
-    this.structures.addChild(controller);
-  }
-  draw_structures(info) {
+  refresh_structure(info) {
     let structures = info.structures;
-    this.structure_blocks=info.structures;
     for (let str in structures) {
       switch (structures[str].structureType) {
         case "Source":
-          this.draw_source(structures[str]);
+          this.refresh_source(structures[str]);
           break;
         case "Controller":
-          this.draw_controller(structures[str]);
+          this.refresh_controller(structures[str]);
           break;
       }
     }
   }
-  draw_creeps(info){
-    let creeps=info.creeps;
-    for (let crp in creeps) {
-      this.creep_list.push(creep[crp]);
+  refresh_creep(info) {
+    for (let crp in info.creeps) {
+      let creep = new Graphics();
+      creep.position.set(
+        info.creeps[crp].pos[0] * BLOCK_SIZE + BLOCK_SIZE / 2,
+        info.creeps[crp].pos[1] * BLOCK_SIZE + BLOCK_SIZE / 2
+      );
+      creep
+        .beginFill(CREEP_COLOR)
+        .drawCircle(0, 0, 0.5 * BLOCK_SIZE)
+        .endFill();
+      creep.info=info.creeps[crp];
+      this.Creep.canvas.addChild(creep);
+      this.Creep.list.push(creep);
     }
   }
-  new_grid() {
-    const grid = new Array();
-    for (let i = 0; i != X_SIZE; i++) {
-      const row = new Array();
-      for (let j = 0; j != Y_SIZE; j++) {
-        const block = new Graphics();
-        block.position.set(i * BLOCK_SIZE, j * BLOCK_SIZE);
-        row.push(block);
-        this.main_map.addChild(block);
-      }
-      grid.push(row);
+  frame(info) {
+    for (let crp in info.creeps) {
+      this.Creep.list.find((creep)=>{return creep})
+      this.Creep.canvas.addChild(creep);
+      this.Creep.list.push(creep);
     }
-    return grid;
-  }
-  new_center_grid() {
-    const grid = new Array();
-    for (let i = 0; i != X_SIZE; i++) {
-      const row = new Array();
-      for (let j = 0; j != Y_SIZE; j++) {
-        const block = new Graphics();
-        block.position.set(
-          i * BLOCK_SIZE + BLOCK_SIZE / 2,
-          j * BLOCK_SIZE + BLOCK_SIZE / 2
-        );
-        row.push(block);
-        this.main_map.addChild(block);
-      }
-      grid.push(row);
-    }
-    return grid;
   }
   display(info) {
-    if (this.init_over === false) {
+    if (this.refresh === true) {
       if (info === undefined) {
-        this.main_map.addChild(this.text);
+        this.app.stage.addChild(this.GameText.loading_text);
       } else {
-        this.main_map.removeChild(this.text);
-        this.draw_terrain(info);
-        this.draw_structures(info);
-        this.init_over = true;
+        this.app.stage.removeChild(this.GameText.loading_text);
+        this.refresh_terrain(info);
+        this.refresh_structure(info);
+        this.refresh_creep(info);
+        this.refresh = false;
       }
+    } else {
+      this.frame(info);
     }
   }
 }
