@@ -8,6 +8,8 @@ The game engine and http server (currently very rough) is written by [YihengDu](
 
 
 
+
+
 ## Server Launch
 
 Prerequisites:
@@ -26,6 +28,8 @@ node server.js	# launch server
 The server is expected to running in the background. Go to [localhost](http://127.0.0.1:8080/) via browser to play the game. Public access is currently not supported.
 
 Only console launcher is supported now. GUI server development is scheduled.
+
+
 
 
 
@@ -51,9 +55,13 @@ Only console launcher is supported now. GUI server development is scheduled.
 
 
 
+
+
 ## Introduction
 
 **Screeps2** is mostly inherited from the original game without modification. To get a detailed introduction of the original game, please refer to [Screeps docs](https://docs.screeps.com).
+
+
 
 
 
@@ -63,9 +71,13 @@ Only console launcher is supported now. GUI server development is scheduled.
 
 
 
+
+
 ### Game Time
 
 Although **Screeps2** is a real-time game, it has its own clocks. The in-game time is denoted as **tick**. It is reset to 0 when the server runs for the first time or reset. Game's **tick** increases by 1 after each game iteration, which means the game engine finished evaluating of all players' script, updating game states and save all current game data to local backup. Therefore **tick** won't update if the server stops running.
+
+
 
 
 
@@ -80,13 +92,17 @@ To obtain both randomness and reproducibility, we use a properly seeded [xorshif
 
 
 
+
+
 ### Game World
 
 The whole game is running on several almost isolated 2D plain, called **shard**s, using Descartesain Coordinate System whose origin (0, 0) is situated at the top-left corner. There are intershard portals connecting adjacent **shard**s. The origin of each **shard** is situated at the its center.
 
 
 
-#### Room
+
+
+### Room
 
 Each **shard** is divided into interconnected **room**s. A **room** is a closed rectangular space with discrete cells in fixed size. All physical events occur within a specific **room**. Each **Room** has:
 
@@ -97,7 +113,9 @@ Each **shard** is divided into interconnected **room**s. A **room** is a closed 
 
 
 
-##### Room Position
+
+
+#### Room Position
 
 Cells in room are represented by **room position**s. Each **room position** consists of three parts:
 
@@ -107,7 +125,9 @@ Cells in room are represented by **room position**s. Each **room position** cons
 
 
 
-##### Room Terrain
+
+
+#### Room Terrain
 
 Each **room**'s landscape is consistant and unique, called **room terrain**. **Terrain**s are generated as a whole during the initialization procedure of the game world and stay unchanged afterwards. It consists of three types of surface:
 
@@ -119,7 +139,9 @@ You can obtain detailed cell-wise **room terrain** information as long as you ha
 
 
 
-##### Room Object
+
+
+#### Room Object
 
 **Room object**s are physical entities. Almost enery object in the game is a **room object**. Each **room object**s have:
 
@@ -128,7 +150,9 @@ You can obtain detailed cell-wise **room terrain** information as long as you ha
 
 
 
-#### Creep
+
+
+### Creep
 
 **Creep**s are your mobile units. It is a **room object** and is created by a **spawn**. Most actions in the game are conducted by a certain **creep**. They can move, collect resources, defense your colony and attack other player's **creep**s to expand your territory. Any **Creep** has a life cycle, after which it will die but leave its resource in place. So you not only need to control existing creeps but set up manufacturing and automatic control of superseding generations of your creeps as well. **Creep**s have:
 
@@ -152,10 +176,11 @@ You can obtain detailed cell-wise **room terrain** information as long as you ha
 
 
 
-#### Structure
+
+
+### Structure
 
 **Structure**s are your static units. It's a **room object** and is built by **creep** (except the initial **spawn**, which is directly allocated after respawn by player). There are two types of **structure**:
 
 - **public structure** - everyone have access to it. It's denoted directly by **structure**.
 - **owned structure** - only its owner (typically its builder) can operate on it.
-
