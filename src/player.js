@@ -30,6 +30,7 @@ class Player {
 
     /** setup lexical environment */
     setup.create(context, engine, this);
+    setup.reduce(context, engine, this);
 
     /** start timer */
     console.log(`  Running ${this.name}'s code`);

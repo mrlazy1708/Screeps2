@@ -20,10 +20,16 @@
 // const ret = spawn.spawnCreep([WORK, CARRY, MOVE], Game.time);
 
 const room = Game.rooms.W0N0;
-console.log(Game.time, room.name);
+console.log(Game.time, room.name, room.creeps);
 
 const creep = Game.creeps.John;
-console.log(`creep`, creep.id, creep.pos, creep.store.getUsed(RESOURCE_ENERGY));
+console.log(
+  `creep`,
+  creep.id,
+  creep.pos,
+  creep.ticksToLive,
+  creep.store.getUsed(RESOURCE_ENERGY)
+);
 
 const controller = room.controller;
 console.log(

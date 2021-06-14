@@ -8,6 +8,10 @@ const Queue = require(`./queue`);
 
 /** construct prototypes for player from engine under context */
 function create(context, engine, player) {
+  /** hidden Map for room objects */
+  const _creeps = new Map(),
+    _structures = new Map();
+
   /**
    * The main global game object containing all the game play information.
    *
@@ -23,10 +27,10 @@ function create(context, engine, player) {
       );
 
       /** Game.creeps */
-      this.creeps = _.merge({}, ..._.map(this.rooms, `creeps`));
+      this.creeps = _.merge({}, ..._creeps.values());
 
       /** Game.structures */
-      this.structures = _.merge({}, ..._.map(this.rooms, `structures`));
+      this.structures = _.merge({}, ..._structures.values());
 
       /** Game.spawns */
       const isSpawn = (structure) => structure instanceof StructureSpawn;
@@ -76,13 +80,17 @@ function create(context, engine, player) {
       this.name = name;
 
       this.terrain = new RoomTerrain(data.terrain);
+
       this.creeps = _.mapValues(
         data.creeps,
         (creep, name) => new Creep(creep, name, this)
       );
+      _creeps.set(this.name, this.creeps);
+
       this.structures = _.mapValues(data.structures, (structure, id) =>
         Structure.new(structure, id, this)
       );
+      _structures.set(this.name, this.structures);
     }
 
     /** update room stats */
@@ -156,8 +164,8 @@ function create(context, engine, player) {
      *
      */
     find(type, opts = {}) {
-      const creeps = _.filter(context.Game.creeps, { room: this }),
-        structures = _.filter(context.Game.structures, { room: this });
+      const creeps = _creeps.get(this.name),
+        structures = _structures.get(this.name);
       // if (type === FIND_EXITS) return findExits();
       // if (type === FIND_TOP_EXITS)
       //   return _.filter(findExits(), (exit) => exit.y === 0);
@@ -203,8 +211,8 @@ function create(context, engine, player) {
           console.log(pos, utils.symbolOf(object));
           array[pos.y][pos.x] = utils.symbolOf(object);
         };
-      _.forEach(this.creeps, draw);
-      _.forEach(this.structures, draw);
+      _.forEach(_creeps.get(this.name), draw);
+      _.forEach(_structures.get(this.name), draw);
       return array;
     }
 
@@ -607,6 +615,9 @@ function create(context, engine, player) {
       return ret;
     }
 
+    /** remove roomObject */
+    remove() {}
+
     /** get recovering data */
     get recover() {
       const recover = {};
@@ -687,6 +698,7 @@ function create(context, engine, player) {
       this.head = data.head;
       this.body = data.body;
       this.fatigue = data.fatigue;
+      this.ticksToLive = data.ticksToLive;
       this.owner = data.owner;
       this.my = this.owner === player.name;
       this.store = new Store(
@@ -701,7 +713,17 @@ function create(context, engine, player) {
       super.update(...arguments);
 
       this.fatigue -= this.getActiveBodyparts(MOVE) * (MOVE_POWER + 1);
-      if (this.fatigue < 0) this.fatigue = 0;
+      if (this.fatigue <= 0) this.fatigue = 0;
+      this.ticksToLive--;
+      if (this.ticksToLive <= 0) this.remove();
+    }
+
+    /** remove creep */
+    remove() {
+      super.remove(...arguments);
+
+      delete this.room.creeps[this.name];
+      delete context.Game.creeps[this.name];
     }
 
     /**
@@ -909,6 +931,7 @@ function create(context, engine, player) {
       recover.head = this.head;
       recover.body = this.body;
       recover.fatigue = this.fatigue;
+      recover.ticksToLive = this.ticksToLive;
       recover.owner = this.owner;
       recover.store = this.store.recover;
       return recover;
@@ -1129,26 +1152,30 @@ function create(context, engine, player) {
 module.exports.create = create;
 
 function reduce(context, engine, player) {
-  // const Game = context.Game;
-  // _.forEach(Game.creeps, (creep) => {});
+  const Game = context.Game;
 
-  const RoomPosition = context.RoomPosition;
-  delete RoomPosition.prototype.roomX;
-  delete RoomPosition.prototype.roomY;
-  delete RoomPosition.prototype.clone;
-  delete RoomPosition.prototype.move;
-  delete RoomPosition.prototype.clamp;
-  delete RoomPosition.prototype.recover;
+  _.forEach(Game.rooms, (room) => {
+    delete room.creeps;
+    delete room.structures;
+  });
 
-  const Store = context.Store;
-  delete Store.prototype.setCapacity;
-  delete Store.prototype.addCapacity;
-  delete Store.prototype.setUsed;
-  delete Store.prototype.addUsed;
-  delete Store.prototype.recover;
+  // const RoomPosition = context.RoomPosition;
+  // delete RoomPosition.prototype.roomX;
+  // delete RoomPosition.prototype.roomY;
+  // delete RoomPosition.prototype.clone;
+  // delete RoomPosition.prototype.move;
+  // delete RoomPosition.prototype.clamp;
+  // delete RoomPosition.prototype.recover;
 
-  const Room = context.Room;
-  delete Room.prototype.find;
-  delete Room.prototype.recover;
+  // const Store = context.Store;
+  // delete Store.prototype.setCapacity;
+  // delete Store.prototype.addCapacity;
+  // delete Store.prototype.setUsed;
+  // delete Store.prototype.addUsed;
+  // delete Store.prototype.recover;
+
+  // const Room = context.Room;
+  // delete Room.prototype.find;
+  // delete Room.prototype.recover;
 }
 module.exports.reduce = reduce;
