@@ -145,7 +145,7 @@ class PRNG {
       [nH, nL] = this.rand64;
     return toHex(nH) + toHex(nL);
   }
-  get recover() {
+  recover() {
     return [this.s0, this.s1];
   }
 }

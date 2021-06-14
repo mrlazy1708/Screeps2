@@ -55,9 +55,9 @@ class Engine {
       _.forEach(this.creeps, (creep) => creep.update());
       _.forEach(this.structures, (structure) => structure.update());
 
-      fs.writeFileSync(`./local/meta.json`, JSON.stringify(this.recover));
+      fs.writeFileSync(`./local/meta.json`, JSON.stringify(this.recover()));
 
-      const map = this.creeps.John.room.print;
+      const map = this.creeps.John.room.print();
       console.log(`print room ${this.creeps.John.room.name}`);
       console.log(map);
 
@@ -117,7 +117,7 @@ class Engine {
       /** a claimable room must have exactly 2 or 3 sources, otherwise it will be too barren or too rich */
       if (nSources >= 2 && nSources <= 3) real.StructureController.new(room);
     });
-    fs.writeFileSync(`./local/meta.json`, JSON.stringify(this.recover));
+    fs.writeFileSync(`./local/meta.json`, JSON.stringify(this.recover()));
     // this.creeps = {};
     // real.Creep.new(
     //     this.rooms.W0N0,
@@ -132,15 +132,15 @@ class Engine {
     // );
   }
   getRoomData(roomName) {
-    return this.rooms[roomName].recover;
+    return this.rooms[roomName].recover();
   }
-  get recover() {
+  recover() {
     const recover = {};
     recover.time = this.time;
     recover.interval = this.interval;
-    recover.RNG = this.RNG.recover;
-    recover.players = _.mapValues(this.players, `recover`);
-    recover.rooms = _.mapValues(this.rooms, `recover`);
+    recover.RNG = this.RNG.recover();
+    recover.players = _.mapValues(this.players, (player) => player.recover());
+    recover.rooms = _.mapValues(this.rooms, (room) => room.recover());
     return recover;
   }
 }

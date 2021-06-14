@@ -79,3 +79,5 @@ if (ret1 === ERR_NOT_IN_RANGE)
       ? creep.moveTo(source)
       : creep.moveTo(controller)
   );
+
+console.log(Creep.recover, Store.setUsed, RoomPosition.getXY);

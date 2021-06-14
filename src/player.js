@@ -55,7 +55,7 @@ class Player {
 
     callback();
   }
-  get recover() {
+  recover() {
     const recover = {};
     recover.rcl = this.rcl;
     return recover;
