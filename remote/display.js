@@ -53,8 +53,6 @@ export class Display {
     this.Terrain.background = new Graphics();
     this.Terrain.canvas.addChild(this.Terrain.background);
     this.Terrain.list = this.new_grid(this.Terrain.canvas);
-    this.Creep.list = new Array();
-    this.Structure.list = new Array();
 
     this.GameText = new Object();
     this.GameText.loading_text = new Text("loading...", alert_style);
@@ -110,7 +108,7 @@ export class Display {
       )
       .endFill();
     this.Structure.canvas.addChild(source);
-    this.Structure.list.push(source);
+    info.obj = source;
   }
   refresh_controller(info) {
     let controller = new Graphics();
@@ -123,7 +121,7 @@ export class Display {
       .drawCircle(0, 0, 0.5 * BLOCK_SIZE)
       .endFill();
     this.Structure.canvas.addChild(controller);
-    this.Structure.list.push(controller);
+    info.obj = controller;
   }
   refresh_terrain(info) {
     this.Terrain.background
@@ -148,19 +146,20 @@ export class Display {
     }
   }
   refresh_structure(info) {
-    let structures = info.structures;
-    for (let str in structures) {
-      switch (structures[str].structureType) {
+    this.Structure.info = info.structures;
+    for (let str in this.Structure.info) {
+      switch (this.Structure.info[str].structureType) {
         case "Source":
-          this.refresh_source(structures[str]);
+          this.refresh_source(this.Structure.info[str]);
           break;
         case "Controller":
-          this.refresh_controller(structures[str]);
+          this.refresh_controller(this.Structure.info[str]);
           break;
       }
     }
   }
   refresh_creep(info) {
+    this.Creep.info = info.creeps;
     for (let crp in info.creeps) {
       let creep = new Graphics();
       creep.position.set(
@@ -171,16 +170,17 @@ export class Display {
         .beginFill(CREEP_COLOR)
         .drawCircle(0, 0, 0.5 * BLOCK_SIZE)
         .endFill();
-      creep.info=info.creeps[crp];
+      creep.info = info.creeps[crp];
       this.Creep.canvas.addChild(creep);
-      this.Creep.list.push(creep);
+      this.Creep.info[crp].canvas = creep;
     }
   }
   frame(info) {
     for (let crp in info.creeps) {
-      this.Creep.list.find((creep)=>{return creep})
-      this.Creep.canvas.addChild(creep);
-      this.Creep.list.push(creep);
+      this.Creep.info[crp].canvas.position.set(
+        info.creeps[crp].pos[0] * BLOCK_SIZE + BLOCK_SIZE / 2,
+        info.creeps[crp].pos[1] * BLOCK_SIZE + BLOCK_SIZE / 2
+      );
     }
   }
   display(info) {
