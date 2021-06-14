@@ -141,7 +141,7 @@ You can obtain detailed cell-wise **room terrain** information as long as you ha
     - a **creep** can't move into **wall**.
   - A `MOVE` reduces **creep**'s `fatigue` by 2 per tick until it reaches 0.
 - `body` - a sequence up to 50 **bodypart**s. There are 7 avaliable **bodypart** types:
-  - `MOVE` - ability to move. The more `MOVE` a **creep** is equipped, the faster (which means more frequently) it can move without over fatigued.
+  - `MOVE` - ability to move. The more `MOVE` a **creep** is equipped, the faster (which means more frequently) it can move without being over fatigued.
   - `WORK` - ability to harvest energy, construct and repair structures, upgrade controllers.
   - `CARRY` - ability to transfer resources.
   - `ATTACK` – ability of short-range attack.
