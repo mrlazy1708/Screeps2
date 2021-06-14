@@ -233,14 +233,16 @@ function create(context, engine, player) {
    *
    */
   class RoomPosition {
-    constructor(coords, roomName, arg) {
-      if (_.isNumber(coords)) return new RoomPisition([coords, roomName], arg);
-      this.x = `x` in coords ? coords.x : coords[0];
-      this.y = `y` in coords ? coords.y : coords[1];
-      this.roomName = roomName || coords.roomName;
-      assert(this.x >= 0 && this.x < ROOM_WIDTH, `Invalid x coordinate!`);
-      assert(this.y >= 0 && this.y < ROOM_HEIGHT, `Invalid y coordinate!`);
-      assert.match(this.roomName, /[WE]\d+[NS]\d+/, `Invalid room name!`);
+    constructor(x, y, roomName) {
+      assert(!_.isUndefined(x) && !_.isNull(x), `Invalid arguments!`);
+      if (_.isString(x.roomName))
+        return new RoomPosition(x.x, x.y, roomName || x.roomName);
+      assert(x >= 0 && x < ROOM_WIDTH, `Invalid x coordinate!`);
+      assert(y >= 0 && y < ROOM_HEIGHT, `Invalid y coordinate!`);
+      assert.match(roomName, /[WE]\d+[NS]\d+/, `Invalid room name!`);
+      this.x = x;
+      this.y = y;
+      this.roomName = roomName;
     }
 
     /** get X coordinate in roomName */
@@ -267,6 +269,14 @@ function create(context, engine, player) {
     set Y(y) {
       const [__, rest] = /([WE]\d+)[NS]\d+/.exec(this.roomName);
       return (this.roomName = `${rest}${y >= 0 ? `S${y}` : `N${-1 - y}`}`);
+    }
+
+    /** get [X, Y] coordinate in roomName */
+    get XY() {
+      const [__, qx, nx, qy, ny] = /([WE])(\d+)([NS])(\d+)/.exec(this.roomName),
+        y = qy === `N` ? -1 - Number(ny) : Number(ny),
+        x = qx === `W` ? -1 - Number(nx) : Number(nx);
+      return [x, y];
     }
 
     /** convert to number */
@@ -316,19 +326,32 @@ function create(context, engine, player) {
     }
     /** clamp RoomPosition over boundaries */
     clamp(minX = 0, minY = 0, maxX = ROOM_WIDTH - 1, maxY = ROOM_HEIGHT - 1) {
-      if (this.x <= minX) this.X--, (this.x = maxX);
-      else if (this.x >= maxX) this.X++, (this.x = minX);
-      if (this.y <= minY) this.Y--, (this.y = maxY);
-      else if (this.y >= maxY) this.Y++, (this.y = minY);
+      if (this.x <= minX) {
+        const X = this.X - 1;
+        if (-X * 2 <= WORLD_WIDTH) (this.X = X), (this.x = maxX);
+        else assert(this.x === minX, `Move into the wild!`);
+      } else if (this.x >= maxX) {
+        const X = this.X + 1;
+        if (X * 2 < WORLD_WIDTH) (this.X = X), (this.x = minX);
+        else assert(this.x === maxX, `Move into the wild!`);
+      }
+      if (this.y <= minY) {
+        const Y = this.Y - 1;
+        if (-Y * 2 <= WORLD_HEIGHT) this.Y--, (this.y = maxY);
+        else assert(this.y === minY, `Move into the wild!`);
+      } else if (this.y >= maxY) {
+        const Y = this.Y + 1;
+        if (Y * 2 < WORLD_HEIGHT) this.Y++, (this.y = minY);
+        else assert(this.y === maxY, `Move into the wild!`);
+      }
       return this;
     }
     /** get range to another RoomPosition */
     getRangeTo(pos) {
-      if (_.isUndefined(pos) || _.isNull(pos)) return ERR_INVALID_ARGS;
+      assert(!_.isUndefined(pos) && !_.isNull(pos), `Invalid pos ${pos}!`);
       if (!(pos instanceof RoomPosition)) pos = pos.pos;
-      if (!(pos instanceof RoomPosition)) return ERR_INVALID_ARGS;
-      const [tX, tY] = utils.parse(this.roomName),
-        [pX, pY] = utils.parse(pos.roomName);
+      assert(pos instanceof RoomPosition, `Invalid pos ${pos}!`);
+      const [[tX, tY], [pX, pY]] = [this.XY, pos.XY];
       return Math.max(
         Math.abs(tX * ROOM_WIDTH + this.x - (pX * ROOM_WIDTH + pos.x)),
         Math.abs(tY * ROOM_HEIGHT + this.y - (pY * ROOM_HEIGHT + pos.y))
@@ -438,12 +461,15 @@ function create(context, engine, player) {
         [TERRAIN_SWAMP]: opts.swampCost || MOVE_COST[TERRAIN_SWAMP],
         [TERRAIN_WALL]: opts.wallCost || MOVE_COST[TERRAIN_WALL],
       };
-      this.roomCallback =
-        opts.roomCallback ||
-        ((roomName) => {
-          const terrain = context.Game.rooms[roomName].terrain;
-          return _.map(_.flatten(terrain.data), (sym) => this.moveCost[sym]);
-        });
+      const defaultCallback = (roomName) => {
+        const terrain = context.Game.rooms[roomName].terrain;
+        return _.map(_.flatten(terrain.data), (sym) => this.moveCost[sym]);
+      };
+      this.roomCallback = (roomName) => {
+        const rooms = context.Game.rooms;
+        assert(roomName in rooms, `Room ${roomName} is out of boundray!`);
+        return (opts.roomCallback || defaultCallback)(roomName);
+      };
       this.flee = opts.flee || false;
       this.maxOps = opts.maxOps || 2000;
       this.maxCost = opts.maxCost || Infinity;
@@ -498,12 +524,12 @@ function create(context, engine, player) {
             moveCosts.set(pos.roomName, this.roomCallback(pos.roomName));
           return moveCosts.get(pos.roomName)[+pos];
         },
-        explore = (pos, ppos, dir, dis, heu) => {
+        explore = (pos, ppos, dir, dis) => {
           if (!internals.has(pos.roomName)) internals.set(pos.roomName, []);
           const room = internals.get(pos.roomName);
           if (_.isUndefined(room[+pos]) || _.head(room[+pos]) > dis) {
             room[+pos] = [dis, dir, ppos];
-            frontiers.push([dis + heu, dis, pos]);
+            frontiers.push([dis + heuristic(pos), dis, pos]);
           }
         },
         reconstruct = (pos, info, path = [], poss = []) => {
@@ -526,13 +552,14 @@ function create(context, engine, player) {
         const top = frontiers.pop();
         if (_.isUndefined(top)) break;
         const [score, dis, pos] = top;
+        if (!_.isFinite(score)) break;
         if (range > score - dis)
           [range, cost, nearest] = [score - dis, dis, pos];
         const room = goals.get(pos.roomName);
         if (room !== undefined && room.has(Number(pos))) break;
         _.forEach(utils.dirs, (dir) => {
-          const npos = pos.clone().move(dir).clamp();
-          explore(npos, pos, dir, dis + moveCost(npos), heuristic(npos));
+          const npos = pos.clone().move(dir);
+          explore(npos.clamp(), pos, dir, dis + moveCost(npos));
         });
       }
       const incomplete = range > 0;
@@ -550,7 +577,9 @@ function create(context, engine, player) {
       this.id = id;
       this.room = room;
 
-      this.pos = new RoomPosition(data.pos, this.room.name);
+      let pos = data.pos;
+      if (!(pos instanceof Array)) pos = [pos.x, pos.y];
+      this.pos = new RoomPosition(...pos, this.room.name);
       this.hits = data.hits;
       this.hitsMax = data.hitsMax;
     }
