@@ -1,18 +1,17 @@
-/** @format */
-
 `use strict`;
 
 const _ = require(`lodash`);
-const http = require(`http`);
 const fs = require(`fs`);
+const repl = require(`repl`);
+const http = require(`http`);
+const Engine = require(`./src/engine`);
 
-const engine = new (require(`./src/engine`))();
+const engine = new Engine();
 
 http
   .createServer(function (request, response) {
     const { headers, method, url } = request,
       body = [];
-    console.log1(`Incoming request from ${headers.host} by ${method}`);
     request.on(`data`, (chunk) => {
       response.writeHead(200, { "content-Type": "text/html" });
       const data = JSON.parse(chunk.toString());
@@ -45,3 +44,19 @@ http
 console.log(`Server running at http://127.0.0.1:8080/`);
 console.log1 = console.log;
 console.log = () => {};
+
+const local = repl.start();
+Object.defineProperties(local.context, {
+  time: {
+    get: () => engine.time,
+    set: (value) => (engine.time = value),
+  },
+  interval: {
+    get: () => engine.interval,
+    set: (value) => (engine.interval = value),
+  },
+  rooms: { value: engine.rooms },
+  creeps: { value: engine.creeps },
+  structures: { value: engine.structures },
+  console: { value: { log: console.log1 } },
+});
