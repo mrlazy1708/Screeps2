@@ -57,10 +57,6 @@ class Engine {
 
       fs.writeFileSync(`./local/meta.json`, JSON.stringify(this.recover()));
 
-      const map = this.creeps.John.room.print();
-      console.log(`print room ${this.creeps.John.room.name}`);
-      console.log(map);
-
       const interval = this.interval - (new Date() - this.startTime);
       setTimeout(this.runTick.bind(this), interval);
     }
