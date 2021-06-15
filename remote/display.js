@@ -34,7 +34,7 @@ export class Display {
       height: window.outerHeight,
       resolution: RESOLUTION,
     });
-    document.body.appendChild(this.app.view);
+    document.querySelector(".upper-left-monitor").appendChild(this.app.view);
     this.app.renderer.backgroundColor = MARGIN_COLOR;
 
     this.ticker = this.app.ticker;

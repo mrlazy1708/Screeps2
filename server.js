@@ -32,6 +32,9 @@ http
         } else if (url === `/display.js`) {
           response.writeHead(200, { "content-Type": "text/javascript" });
           fs.createReadStream("./remote/display.js").pipe(response);
+        } else if (url === `/monitor.js`) {
+          response.writeHead(200, { "content-Type": "text/javascript" });
+          fs.createReadStream("./remote/monitor.js").pipe(response);
         } else {
           response.writeHead(404, { "content-Type": "text/plain" });
           // response.end(`YOU SPELLED IT WRONG`);
