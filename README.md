@@ -50,6 +50,7 @@ Only console launcher is supported now. GUI server development is scheduled.
     - [ ] Mouse interaction
     - [ ] BGM
   - [ ] Energy saving
+- [ ] Login system
 - [x] Wiki
 
 

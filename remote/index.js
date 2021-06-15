@@ -21,10 +21,10 @@ function refresh(object) {
   }
 }
 
-const REFRESH_INTERVAL=1000;
+const REFRESH_INTERVAL = 1000;
 const display = new Display();
 let info;
-let cnt=0;
+let cnt = 0;
 
 setInterval(main, REFRESH_INTERVAL);
 display.ticker.add(() => display.display(info));

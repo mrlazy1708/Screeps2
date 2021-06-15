@@ -2,12 +2,12 @@
 
 const { Application, Container, Graphics, TextStyle, Text } = PIXI;
 
-const BGD_COLOR = 0x555555;
-const STONE_COLOR = 0x222222;
-const SWAMP_COLOR = 0x2f4f4f;
+const BGD_COLOR = 0x2b2b2b;
+const WALL_COLOR = 0x131313;
+const SWAMP_COLOR = 0x28301d;
 const MARGIN_COLOR = 0x222222;
-const SOURCE_COLOR = 0xffd700;
-const CONTRPLLER_COLOR = 0xffffff;
+const SOURCE_COLOR = 0xf6e07b;
+const CONTROLLER_COLOR = 0x66ccff;
 const CREEP_COLOR = 0xffffff;
 const RESOLUTION = 1;
 const X_SIZE = 64;
@@ -117,7 +117,7 @@ export class Display {
       info.pos[1] * BLOCK_SIZE + BLOCK_SIZE / 2
     );
     controller
-      .beginFill(CONTRPLLER_COLOR)
+      .beginFill(CONTROLLER_COLOR)
       .drawCircle(0, 0, 0.5 * BLOCK_SIZE)
       .endFill();
     this.Structure.canvas.addChild(controller);
@@ -134,7 +134,7 @@ export class Display {
       for (let j = 0; j != Y_SIZE; j++) {
         let color = BGD_COLOR;
         if (terrain[i][j] === "x") {
-          color = STONE_COLOR;
+          color = WALL_COLOR;
         } else if (terrain[i][j] === "~") {
           color = SWAMP_COLOR;
         }
