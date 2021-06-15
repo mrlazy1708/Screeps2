@@ -1,5 +1,3 @@
-/** @format */
-
 const { Application, Container, Graphics, TextStyle, Text } = PIXI;
 
 const BGD_COLOR = 0x2b2b2b;
@@ -12,10 +10,8 @@ const CREEP_COLOR = 0xffffff;
 const RESOLUTION = 1;
 const X_SIZE = 64;
 const Y_SIZE = 64;
-const BLOCK_SIZE = Math.min(
-  window.outerWidth / X_SIZE,
-  window.outerHeight / Y_SIZE
-);
+const ORIGIN_RES=1500;
+const BLOCK_SIZE = ORIGIN_RES/X_SIZE;
 const MAP_SIZE_X = BLOCK_SIZE * X_SIZE;
 const MAP_SIZE_Y = BLOCK_SIZE * Y_SIZE;
 const alert_style = new TextStyle({
@@ -30,12 +26,11 @@ export class Display {
     this.refresh = true;
 
     this.app = new Application({
-      width: window.outerWidth,
-      height: window.outerHeight,
+      width: ORIGIN_RES,
+      height: ORIGIN_RES,
       resolution: RESOLUTION,
     });
-    document.querySelector(".upper-left-monitor").appendChild(this.app.view);
-    this.app.renderer.backgroundColor = MARGIN_COLOR;
+    document.querySelector(".pixi-canvas").appendChild(this.app.view);
 
     this.ticker = this.app.ticker;
 
@@ -54,12 +49,12 @@ export class Display {
     this.Terrain.canvas.addChild(this.Terrain.background);
     this.Terrain.list = this.new_grid(this.Terrain.canvas);
 
-    this.GameText = new Object();
-    this.GameText.loading_text = new Text("loading...", alert_style);
-    this.GameText.loading_text.position.set(
-      (MAP_SIZE_X - this.GameText.loading_text.width) / 2,
-      (MAP_SIZE_Y - this.GameText.loading_text.height) / 2
-    );
+    // this.GameText = new Object();
+    // this.GameText.loading_text = new Text("loading...", alert_style);
+    // this.GameText.loading_text.position.set(
+    //   (MAP_SIZE_X - this.GameText.loading_text.width) / 2,
+    //   (MAP_SIZE_Y - this.GameText.loading_text.height) / 2
+    // );
   }
   new_grid(canvas) {
     const grid = new Array();
@@ -183,13 +178,12 @@ export class Display {
       );
     }
   }
+  set_scale(scale){
+    this.app.stage.scale.set(scale,scale);
+  }
   display(info) {
     if (this.refresh === true) {
-      if (info === undefined) {
-        this.app.stage.addChild(this.GameText.loading_text);
-      } else {
-        
-        this.app.stage.removeChild(this.GameText.loading_text);
+      if (info != undefined) {
         this.refresh_terrain(info);
         this.refresh_structure(info);
         this.refresh_creep(info);
