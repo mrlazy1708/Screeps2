@@ -188,6 +188,7 @@ export class Display {
       if (info === undefined) {
         this.app.stage.addChild(this.GameText.loading_text);
       } else {
+        
         this.app.stage.removeChild(this.GameText.loading_text);
         this.refresh_terrain(info);
         this.refresh_structure(info);

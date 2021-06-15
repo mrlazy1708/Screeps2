@@ -18,17 +18,32 @@
       style="float: left; width: 80%; height: 100%; border-width: 0"
     ></div>
     <div
-      class="upper-left-monitor"
+      class="upper-right-monitor"
       style="float: left; width: 20%; height: 100%; border-width: 0"
     ></div>
+    <div
+      id="left-right-divline"
+      style="
+        position: relative;
+        width: 10px;
+        height: 100%;
+        left: 80%;
+        background-color: black;
+        cursor: e-resize;
+        opacity: 0;
+      "
+      onmouseover="style.opacity='0.8';"
+      onmouseout="style.opacity='0';"
+      onmousedown="left_right_divline_move();"
+    ></div>
   </div>
-  <div class="lower-monitor" style="height: 20%; background-color: wheat"></div>
+  <div class="lower-monitor" style="height: 20%;"></div>
   <div
-    id="divline"
+    id="up-low-divline"
     style="
       position: absolute;
       width: 100%;
-      height: 5px;
+      height: 10px;
       top: 80%;
       background-color: black;
       cursor: s-resize;
@@ -37,6 +52,5 @@
     onmouseover="style.opacity='0.8';"
     onmouseout="style.opacity='0';"
     onmousedown="up_low_divline_move();"
-  >
-  </div>
+  ></div>
 </body>
