@@ -47,7 +47,7 @@ export class Display {
 
     this.Terrain.background = new Graphics();
     this.Terrain.canvas.addChild(this.Terrain.background);
-    this.Terrain.list = this.new_grid(this.Terrain.canvas);
+    this.Terrain.list = this.newGrid(this.Terrain.canvas);
 
     // this.GameText = new Object();
     // this.GameText.loading_text = new Text("loading...", alert_style);
@@ -56,7 +56,7 @@ export class Display {
     //   (MAP_SIZE_Y - this.GameText.loading_text.height) / 2
     // );
   }
-  new_grid(canvas) {
+  newGrid(canvas) {
     const grid = new Array();
     for (let i = 0; i != X_SIZE; i++) {
       const row = new Array();
@@ -70,7 +70,7 @@ export class Display {
     }
     return grid;
   }
-  new_center_grid(canvas) {
+  newCenterGrid(canvas) {
     const grid = new Array();
     for (let i = 0; i != X_SIZE; i++) {
       const row = new Array();
@@ -87,7 +87,7 @@ export class Display {
     }
     return grid;
   }
-  refresh_source(info) {
+  refreshSource(info) {
     let source = new Graphics();
     source.position.set(
       info.pos[0] * BLOCK_SIZE + BLOCK_SIZE / 2,
@@ -105,7 +105,7 @@ export class Display {
     this.Structure.canvas.addChild(source);
     info.obj = source;
   }
-  refresh_controller(info) {
+  refreshController(info) {
     let controller = new Graphics();
     controller.position.set(
       info.pos[0] * BLOCK_SIZE + BLOCK_SIZE / 2,
@@ -118,7 +118,7 @@ export class Display {
     this.Structure.canvas.addChild(controller);
     info.obj = controller;
   }
-  refresh_terrain(info) {
+  refreshTerrain(info) {
     this.Terrain.background
       .beginFill(BGD_COLOR)
       .drawRect(0, 0, MAP_SIZE_X, MAP_SIZE_Y)
@@ -140,20 +140,20 @@ export class Display {
       }
     }
   }
-  refresh_structure(info) {
+  refreshStructure(info) {
     this.Structure.info = info.structures;
     for (let str in this.Structure.info) {
       switch (this.Structure.info[str].structureType) {
         case "Source":
-          this.refresh_source(this.Structure.info[str]);
+          this.refreshSource(this.Structure.info[str]);
           break;
         case "Controller":
-          this.refresh_controller(this.Structure.info[str]);
+          this.refreshController(this.Structure.info[str]);
           break;
       }
     }
   }
-  refresh_creep(info) {
+  refreshCreep(info) {
     this.Creep.info = info.creeps;
     for (let crp in info.creeps) {
       let creep = new Graphics();
@@ -178,15 +178,15 @@ export class Display {
       );
     }
   }
-  set_scale(scale){
+  setScale(scale){
     this.app.stage.scale.set(scale,scale);
   }
   display(info) {
     if (this.refresh === true) {
       if (info != undefined) {
-        this.refresh_terrain(info);
-        this.refresh_structure(info);
-        this.refresh_creep(info);
+        this.refreshTerrain(info);
+        this.refreshStructure(info);
+        this.refreshCreep(info);
         this.refresh = false;
       }
     } else {
