@@ -1,7 +1,8 @@
 `use strict`;
 
 const _ = require(`lodash`);
-require(`./constants`);
+const assert = require(`assert/strict`);
+const constants = require(`./constants`);
 
 // prettier-ignore
 const dirs = [TOP, TOP_RIGHT, RIGHT, BOTTOM_RIGHT, BOTTOM, BOTTOM_LEFT, LEFT, TOP_LEFT];
@@ -11,33 +12,26 @@ const invertedDirs = _.invert(dirs);
 module.exports.dirCodes = invertedDirs;
 
 // prettier-ignore
+const dudv = {[TOP]: [0, -1], [RIGHT]: [1, 0], [BOTTOM]: [0, 1], [LEFT]: [-1, 0]};
+module.exports.dudv = dudv;
+
+// prettier-ignore
 const dxdy = {[TOP]: [0, -1], [TOP_RIGHT]: [1, -1], [RIGHT]: [1, 0], [BOTTOM_RIGHT]: [1, 1], [BOTTOM]: [0, 1], [BOTTOM_LEFT]: [-1, 1], [LEFT]: [-1, 0], [TOP_LEFT]: [-1, -1]};
 module.exports.dxdy = dxdy;
+
+// prettier-ignore
+const opposite = {[TOP]: BOTTOM, [TOP_RIGHT]: BOTTOM_LEFT, [RIGHT]: LEFT, [BOTTOM_RIGHT]: TOP_LEFT, [BOTTOM]: TOP, [BOTTOM_LEFT]: TOP_RIGHT, [LEFT]: RIGHT, [TOP_LEFT]: BOTTOM_RIGHT}
+module.exports.opposite = opposite;
 
 // prettier-ignore
 const ASCIIs = {[TERRAIN_PLAIN]: ` `, [TERRAIN_SWAMP]: `~`, [TERRAIN_LAVA]: `!`, [TERRAIN_WALL]: `x`, 
     [TOP]: `↑`, [TOP_RIGHT]: `↗`, [RIGHT]: `→`, [BOTTOM_RIGHT]: `↘`, [BOTTOM]: `↓`, [BOTTOM_LEFT]: `↙`, [LEFT]: `←`, [TOP_LEFT]: `↖`, 
     [STRUCTURE_CONTROLLER]: `⌘`,[STRUCTURE_SOURCE]: `☢︎`,[STRUCTURE_SPAWN]: `⚙︎`};
-module.exports.symbolOf = (object) =>
+module.exports.symbol = (object) =>
   ASCIIs[object] || ASCIIs[object.head] || ASCIIs[object.structureType];
 
 const invertedASCIIs = _.invert(ASCIIs);
-module.exports.meaningOf = (symbol) => invertedASCIIs[symbol];
-
-function parse(roomName) {
-  const [__, qy, ny, qx, nx] = /([WE])(\d+)([NS])(\d+)/.exec(roomName),
-    y = qy === `N` ? -1 - Number(ny) : Number(ny),
-    x = qx === `W` ? -1 - Number(nx) : Number(nx);
-  return [x, y];
-}
-module.exports.parse = parse;
-
-function roomName(x, y) {
-  const nameX = x >= 0 ? `E${x}` : `W${-x - 1}`,
-    nameY = y >= 0 ? `S${y}` : `N${-y - 1}`;
-  return nameX + nameY;
-}
-module.exports.roomName = roomName;
+module.exports.meaning = (symbol) => invertedASCIIs[symbol];
 
 class M64 {
   static mul32(a, b) {
@@ -106,7 +100,7 @@ class PRNG {
     this.s1 = [s1H, s1L];
   }
   pick(array) {
-    const index = this.rand32 % array.length,
+    const index = this.rand32() % array.length,
       picked = array[index];
     if (index !== array.length - 1) array[index] = array.pop();
     else array.pop();
@@ -118,17 +112,17 @@ class PRNG {
     delete object[key];
     return [key, selected];
   }
-  get copy() {
+  copy() {
     const RNG = new PRNG();
     return Object.assign(RNG, this);
   }
-  get rand() {
-    return this.rand32 / PRNG.max32;
+  rand() {
+    return this.rand32() / PRNG.max32;
   }
-  get rand32() {
-    return this.rand64[0];
+  rand32() {
+    return this.rand64()[0];
   }
-  get rand64() {
+  rand64() {
     let [x, y] = [this.s0, this.s1];
     x = M64.xor64(x, M64.shift64(x, -23));
     [this.s0, this.s1] = [
@@ -140,9 +134,9 @@ class PRNG {
     ];
     return M64.add64(this.s1, y);
   }
-  get randhex() {
+  randhex() {
     const toHex = (n) => (0x100000000 + n).toString(16).substr(-8),
-      [nH, nL] = this.rand64;
+      [nH, nL] = this.rand64();
     return toHex(nH) + toHex(nL);
   }
   recover() {
@@ -152,10 +146,6 @@ class PRNG {
 module.exports.PRNG = PRNG;
 
 class Maze {
-  // prettier-ignore
-  static dxdy = [[0, -1], [1, 0], [0, 1], [-1, 0]];
-  // prettier-ignore
-  static dXdY = [[0, -1], [1, -1], [1, 0], [1, 1], [0, 1], [-1, 1], [-1, 0], [-1, -1]];
   static isEdge(X, Y) {
     return (x, y) => x++ <= 0 || x >= X || y++ <= 0 || y >= Y;
   }
@@ -182,39 +172,39 @@ class Maze {
     [this.X, this.Y, this.RNG, this.isWall] = [X, Y, RNG, isWall];
     this.data = _.map(Array(this.Y), () => Array(this.X).fill(false));
   }
-  get array() {
+  array() {
     const draw = (sym) => (sym === true ? ` ` : `▊`);
     return _.map(this.data, (row) => _.map(row, draw));
   }
-  get print() {
+  print() {
     const join = (row) => _.join(row, ``);
-    return `|${_.join(_.map(this.array, join), `|\n|`)}|`;
+    return `|${_.join(_.map(this.array(), join), `|\n|`)}|`;
   }
   look(x, y) {
     if (this.isWall(x, y)) return 0.3;
     return (this.data[y] || [])[x];
   }
-  count(x, y, set = Maze.dxdy) {
-    return _.sumBy(set, ([dx, dy]) => {
+  count(x, y, set = dudv) {
+    return _.sumBy(_.values(set), ([dx, dy]) => {
       const value = this.look(x + dx, y + dy);
       return value ? Number(value) : 0;
     });
   }
-  make(x = this.RNG.rand32 % this.X, y = this.RNG.rand32 % this.Y) {
+  make(x = this.RNG.rand32() % this.X, y = this.RNG.rand32() % this.Y) {
     const frontier = Array(),
       expand = (x, y) => (
         (this.data[y][x] = true),
-        _.forEach(Maze.dxdy, ([dx, dy], dir) => {
+        _.forEach(dudv, ([dx, dy], dir) => {
           if (this.look(x + dx * 2, y + dy * 2) === false)
             frontier.push([x + dx * 2, y + dy * 2, dir]);
         })
       );
     while (this.isWall(x, y))
-      [x, y] = [this.RNG.rand32 % this.X, this.RNG.rand32 % this.Y];
+      [x, y] = [this.RNG.rand32() % this.X, this.RNG.rand32() % this.Y];
     expand(x, y);
     while (frontier.length > 0) {
       const [x, y, dir] = this.RNG.pick(frontier),
-        [dx, dy] = Maze.dxdy[dir ^ 2];
+        [dx, dy] = dudv[opposite[dir]];
       if (this.look(x, y) === false)
         (this.data[y + dy][x + dx] = true), expand(x, y);
     }
@@ -232,7 +222,7 @@ class Maze {
     _.forEach(_.range(round), () => {
       this.data = _.map(this.data, (row, y) =>
         _.map(row, (v, x) =>
-          v ? true : !this.isWall(x, y) && this.count(x, y, Maze.dXdY) >= 4
+          v ? true : !this.isWall(x, y) && this.count(x, y, dxdy) >= 4
         )
       );
     });
@@ -256,7 +246,7 @@ class Maze {
   }
   loss(rate) {
     this.data = _.map(this.data, (row) =>
-      _.map(row, (v) => (v ? this.RNG.rand > -rate : this.RNG.rand < rate))
+      _.map(row, (v) => (v ? this.RNG.rand() > -rate : this.RNG.rand() < rate))
     );
     return this;
   }

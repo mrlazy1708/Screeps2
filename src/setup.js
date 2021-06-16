@@ -5,7 +5,6 @@ const assert = require(`assert/strict`);
 const constants = require(`./constants`);
 const utils = require(`./utils`);
 const Queue = require(`./queue`);
-const { clamp } = require("lodash");
 
 /** construct prototypes for player from engine under context */
 function create(context, engine, player) {
@@ -18,12 +17,16 @@ function create(context, engine, player) {
    *
    */
   class Game {
+    reduce() {
+      delete Game.prototype.recover;
+      delete Game.prototype.reduce;
+    }
     constructor() {
-      this.time = engine.time;
+      this.time = engine.Game.time;
 
       /** Game.rooms */
       this.rooms = _.mapValues(
-        _.pickBy(engine.rooms, player.visible),
+        _.pickBy(engine.Game.rooms, player.visible),
         (room, name) => new Room(room, name)
       );
 
@@ -56,6 +59,12 @@ function create(context, engine, player) {
         structures = this.structures;
       return creeps[id] || structures[id];
     }
+    recover() {
+      const recover = {};
+      recover.time = this.time;
+      recover.rooms = _.mapValues(this.rooms, (room) => room.recover());
+      return recover;
+    }
   }
 
   /**
@@ -65,7 +74,11 @@ function create(context, engine, player) {
    * @todo Add UI Memory interface.
    *
    */
-  class Memory {}
+  class Memory {
+    reduce() {
+      delete Memory.prototype.reduce;
+    }
+  }
 
   /**
    * An object representing the room in which your units and structures are in.
@@ -78,11 +91,38 @@ function create(context, engine, player) {
    */
   class Room {
     static reduce() {
+      delete Room.prototype.new;
       delete Room.prototype.update;
       delete Room.prototype.array;
       delete Room.prototype.print;
       delete Room.prototype.recover;
       delete Room.prototype.reduce;
+    }
+    static new(X, Y, walls, swamps) {
+      const name = RoomPosition.prototype.setXY(X, Y);
+
+      const raw = _.map(Array(ROOM_HEIGHT), () =>
+          Array(ROOM_WIDTH).fill(TERRAIN_PLAIN)
+        ),
+        setTerrain = (data, value) =>
+          _.forEach(data, (row, y) =>
+            _.forEach(row, (sym, x) => {
+              if (!sym) raw[y][x] = value;
+            })
+          ),
+        rX = X + (WORLD_WIDTH >> 1),
+        rY = Y + (WORLD_HEIGHT >> 1);
+      setTerrain(swamps[rY][rX].data, TERRAIN_SWAMP);
+      setTerrain(walls[rY][rX].data, TERRAIN_WALL);
+      const terrain = new RoomTerrain({ data: raw });
+
+      const creeps = {};
+
+      const structures = {};
+
+      const room = new Room({ terrain, creeps, structures }, name);
+      engine.Game.rooms[name] = room;
+      return room;
     }
     constructor(data, name) {
       this.name = name;
@@ -216,8 +256,8 @@ function create(context, engine, player) {
       const array = this.terrain.array(),
         draw = (object) => {
           const pos = object.pos;
-          console.log(pos, utils.symbolOf(object));
-          array[pos.y][pos.x] = utils.symbolOf(object);
+          console.log(pos, utils.symbol(object));
+          array[pos.y][pos.x] = utils.symbol(object);
         };
       _.forEach(_creeps.get(this.name), draw);
       _.forEach(_structures.get(this.name), draw);
@@ -305,16 +345,16 @@ function create(context, engine, player) {
     /** get [X, Y] coordinate in roomName */
     getXY() {
       const [__, qx, nx, qy, ny] = /([WE])(\d+)([NS])(\d+)/.exec(this.roomName),
-        y = qy === `N` ? -1 - Number(ny) : Number(ny),
-        x = qx === `W` ? -1 - Number(nx) : Number(nx);
-      return [x, y];
+        Y = qy === `N` ? -1 - Number(ny) : Number(ny),
+        X = qx === `W` ? -1 - Number(nx) : Number(nx);
+      return [X, Y];
     }
 
     /** set [X, Y] coordinate in roomName */
-    setXY([X, Y]) {
+    setXY(X, Y) {
       const nameX = `${X >= 0 ? `E${X}` : `W${-1 - X}`}`,
         nameY = `${Y >= 0 ? `S${Y}` : `N${-1 - Y}`}`;
-      return (this.roomName = nameX + nameY);
+      return nameX + nameY;
     }
 
     /**
@@ -409,7 +449,7 @@ function create(context, engine, player) {
     /** Stringify terrain data to compact string. */
     static compress(data, sep = `,`) {
       return _.join(
-        _.map(data, (row) => _.join(_.map(row, utils.symbolOf), ``)),
+        _.map(data, (row) => _.join(_.map(row, utils.symbol), ``)),
         sep
       );
     }
@@ -417,7 +457,7 @@ function create(context, engine, player) {
     /** Parse compressed terrain data. */
     static decompress(data, sep = `,`) {
       return _.map(_.split(data, sep), (row) =>
-        _.map(_.split(row, ``), utils.meaningOf)
+        _.map(_.split(row, ``), utils.meaning)
       );
     }
 
@@ -444,7 +484,7 @@ function create(context, engine, player) {
 
     /** get terrain in ASCII Array */
     array() {
-      return _.map(this.data, (row) => _.map(row, utils.symbolOf));
+      return _.map(this.data, (row) => _.map(row, utils.symbol));
     }
 
     /** get terrain in String */
@@ -1039,7 +1079,6 @@ function create(context, engine, player) {
       room.structures[id] = controller;
       return controller;
     }
-    /** constructor for StructureController */
     constructor(data, _id, room) {
       super(...arguments);
 
@@ -1230,13 +1269,13 @@ function create(context, engine, player) {
 module.exports.create = create;
 
 function reduce(context, engine, player) {
-  const Game = context.Game;
-  _.forEach(Game.rooms, (room) => {
+  context.Game.reduce();
+  _.forEach(context.Game.rooms, (room) => {
     delete room.creeps;
     delete room.structures;
   });
 
-  const Memory = context.Memory;
+  context.Memory.reduce();
 
   context.Room.reduce();
   context.RoomPosition.reduce();
