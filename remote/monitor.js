@@ -1,16 +1,14 @@
-function up_low_divline_move(event) {
-  let is_drop = true;
+function upLowDivlineMove(event) {
+  let mouseDown = true;
   let divline = document.querySelector("#up-low-divline");
   let up_box = document.querySelector(".upper-monitor");
   let low_box = document.querySelector(".lower-monitor");
-  window.onmouseup = function () {
-    is_drop = false;
-  };
+  window.onmouseup = () => (mouseDown = false);
   window.onmousemove = function (event) {
-    if (is_drop) {
-      divline.style.top = (100 * event.pageY) / window.innerHeight + "%";
-      up_box.style.height = (100 * event.pageY) / window.innerHeight + "%";
-      low_box.style.height = 100 * (1 - event.pageY / window.innerHeight) + "%";
+    if (mouseDown) {
+      divline.style.top = `${(100 * event.pageY) / window.innerHeight}%`;
+      up_box.style.height = `${(100 * event.pageY) / window.innerHeight}%`;
+      low_box.style.height = `${100 * (1 -( event.pageY / window.innerHeight))}%`;
     }
   };
 }
