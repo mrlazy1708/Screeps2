@@ -13,21 +13,13 @@
 
 <body>
   <div class="upper-monitor" style="height: 80%; border-width: 0">
-    <div
-      class="upper-left-monitor"
-      style="float: left; width: 80%; height: 100%; border-width: 0"
-      onmousedown="pixi_canvas_move();"
-      onmousewheel="pixi_canvas_zoom();"
-    ></div>
-    <div
-      class="upper-right-monitor"
-      style="float: left; width: 20%; height: 100%; border-width: 0"
-    ></div>
+    <div class="upper-left-monitor"
+      style="float: left; width: 80%; height: 100%; border-width: 0; background-color: black;"
+      onmousedown="pixiCanvasMove(event);" onmousewheel="pixiCanvasZoom(event);"></div>
+    <div class="upper-right-monitor" style="float: left; width: 20%; height: 100%; border-width: 0"></div>
   </div>
-  <div class="lower-monitor" style="height: 20%"></div>
-  <div
-    id="up-low-divline"
-    style="
+  <div class="lower-monitor" style="height: 20%; background-color: cadetblue;"></div>
+  <div id="up-low-divline" style="
       position: absolute;
       width: 100%;
       height: 5px;
@@ -35,9 +27,6 @@
       background-color: black;
       cursor: s-resize;
       opacity: 0;
-    "
-    onmouseover="style.opacity='0.8';"
-    onmouseout="style.opacity='0';"
-    onmousedown="up_low_divline_move();"
-  ></div>
+    " onmouseover="style.opacity='0.8';" onmouseout="style.opacity='0';" onmousedown="up_low_divline_move(event);">
+  </div>
 </body>

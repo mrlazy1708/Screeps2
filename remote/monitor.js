@@ -1,4 +1,4 @@
-function up_low_divline_move() {
+function up_low_divline_move(event) {
   let is_drop = true;
   let divline = document.querySelector("#up-low-divline");
   let up_box = document.querySelector(".upper-monitor");
@@ -15,39 +15,28 @@ function up_low_divline_move() {
   };
 }
 
-function pixi_canvas_move() {
-  let is_drop = true;
-  let monitor = document.querySelector(".upper-left-monitor");
+function pixiCanvasMove(event) {
+  let mouseDown = true;
   let canvas = document.querySelector(".pixi-canvas");
-  let x, y, dx, dy;
-  let cx, cy;
-  window.onmouseup = function () {
-    is_drop = false;
-  };
+  let [mouseX0, mouseY0] = [event.pageX, event.pageY],
+    [canvasX0, canvasY0] = [canvas.offsetLeft, canvas.offsetTop];
+  window.onmouseup = () => (mouseDown = false);
   window.onmousemove = function (event) {
-    if (x === undefined) {
-      x = event.pageX;
-      y = event.pageY;
-      cx = canvas.offsetLeft;
-      cy = canvas.offsetTop;
-    }
-    if (is_drop) {
-      dx = event.pageX - x;
-      dy = event.pageY - y;
-      canvas.style.left = cx + dx + "px";
-      canvas.style.top = cy + dy + "px";
+    if (mouseDown) {
+      canvas.style.left = `${canvasX0 + event.pageX - mouseX0}px`;
+      canvas.style.top = `${canvasY0 + event.pageY - mouseY0}px`;
     }
   };
 }
 
-function pixi_canvas_zoom() {
-  let canvas = document.querySelector(".pixi-canvas");
-  let size = canvas.offsetWidth;
-  if (event.wheelDelta > 0) {
-    canvas.style.width = size / 0.9 + "px";
-    canvas.style.height = size / 0.9 + "px";
-  } else {
-    canvas.style.width = size * 0.9 + "px";
-    canvas.style.height = size * 0.9 + "px";
-  }
+function pixiCanvasZoom(event) {
+  const canvas = document.querySelector(".pixi-canvas");
+  const size = canvas.offsetWidth * (event.wheelDelta > 0 ? 1 / 0.9 : 0.9),
+    [mouseX, mouseY] = [event.pageX, event.pageY],
+    ratioX = (mouseX - canvas.offsetLeft) / canvas.offsetWidth,
+    ratioY = (mouseY - canvas.offsetTop) / canvas.offsetHeight;
+  canvas.style.width = `${size}px`;
+  canvas.style.height = `${size}px`;
+  canvas.style.left = `${mouseX - ratioX * size}px`;
+  canvas.style.top = `${mouseY - ratioY * size}px`;
 }
