@@ -1,24 +1,39 @@
 function upLowDivlineMove(event) {
   let mouseDown = true;
   let divline = document.querySelector("#up-low-divline");
-  let up_box = document.querySelector(".upper-monitor");
-  let low_box = document.querySelector(".lower-monitor");
+  let upBox = document.querySelector(".upper-monitor");
+  let lowBox = document.querySelector(".lower-monitor");
   window.onmouseup = () => (mouseDown = false);
   window.onmousemove = function (event) {
     if (mouseDown) {
       divline.style.top = `${(100 * event.pageY) / window.innerHeight}%`;
-      up_box.style.height = `${(100 * event.pageY) / window.innerHeight}%`;
-      low_box.style.height = `${100 * (1 -( event.pageY / window.innerHeight))}%`;
+      upBox.style.height = `${(100 * event.pageY) / window.innerHeight}%`;
+      lowBox.style.height = `${100 * (1 - event.pageY / window.innerHeight)}%`;
     }
   };
 }
 
+function clamp(upBox, canvas) {
+  const canvasX = canvas.offsetLeft,
+    lowerX = -canvas.offsetWidth * 0.9,
+    upperX = upBox.offsetWidth - canvas.offsetWidth * 0.1;
+  canvas.style.left = `${Math.max(Math.min(canvasX, upperX), lowerX)}px`;
+  const canvasY = canvas.offsetTop,
+    lowerY = -canvas.offsetHeight * 0.9,
+    upperY = upBox.offsetHeight - canvas.offsetHeight * 0.1;
+  canvas.style.top = `${Math.max(Math.min(canvasY, upperY), lowerY)}px`;
+}
+
 function pixiCanvasMove(event) {
   let mouseDown = true;
-  let canvas = document.querySelector(".pixi-canvas");
-  let [mouseX0, mouseY0] = [event.pageX, event.pageY],
+  const upBox = document.querySelector(".upper-left-monitor");
+  const canvas = document.querySelector(".pixi-canvas");
+  const [mouseX0, mouseY0] = [event.pageX, event.pageY],
     [canvasX0, canvasY0] = [canvas.offsetLeft, canvas.offsetTop];
-  window.onmouseup = () => (mouseDown = false);
+  window.onmouseup = function () {
+    mouseDown = false;
+    clamp(upBox, canvas);
+  };
   window.onmousemove = function (event) {
     if (mouseDown) {
       canvas.style.left = `${canvasX0 + event.pageX - mouseX0}px`;
@@ -28,13 +43,16 @@ function pixiCanvasMove(event) {
 }
 
 function pixiCanvasZoom(event) {
+  const upBox = document.querySelector(".upper-left-monitor");
   const canvas = document.querySelector(".pixi-canvas");
-  const size = canvas.offsetWidth * (event.wheelDelta > 0 ? 1 / 0.9 : 0.9),
-    [mouseX, mouseY] = [event.pageX, event.pageY],
+  const [mouseX, mouseY] = [event.pageX, event.pageY],
     ratioX = (mouseX - canvas.offsetLeft) / canvas.offsetWidth,
     ratioY = (mouseY - canvas.offsetTop) / canvas.offsetHeight;
+  let size = canvas.offsetWidth * (event.wheelDelta > 0 ? 1 / 0.9 : 0.9);
+  size = Math.max(Math.min(size, 4000), 40);
   canvas.style.width = `${size}px`;
   canvas.style.height = `${size}px`;
   canvas.style.left = `${mouseX - ratioX * size}px`;
   canvas.style.top = `${mouseY - ratioY * size}px`;
+  clamp(upBox, canvas);
 }

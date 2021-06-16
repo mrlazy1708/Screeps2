@@ -14,19 +14,23 @@
 <body>
   <div class="upper-monitor" style="height: 80%; border-width: 0">
     <div class="upper-left-monitor"
-      style="float: left; width: 80%; height: 100%; border-width: 0; background-color: black;"
+      style="position: relative; z-index: 1; float: left; width: 80%; height: 100%; border-width: 0; background-color: black;"
       onmousedown="pixiCanvasMove(event);" onmousewheel="pixiCanvasZoom(event);"></div>
-    <div class="upper-right-monitor" style="float: left; width: 20%; height: 100%; border-width: 0"></div>
+    <div class="upper-right-monitor"
+      style="
+    position: relative; z-index: 2; float: left; width: 20%; height: 100%; border-width: 0; background-color: lightslategray;"></div>
   </div>
-  <div class="lower-monitor" style="height: 20%; background-color: cadetblue;"></div>
+  <div class="lower-monitor" style="
+  position: relative; z-index: 2; height: 20%; background-color: cadetblue;"></div>
   <div id="up-low-divline" style="
       position: absolute;
+      z-index: 2;
       width: 100%;
       height: 5px;
       top: 80%;
       background-color: black;
       cursor: s-resize;
       opacity: 0;
-    " onmouseover="style.opacity='0.8';" onmouseout="style.opacity='0';" onmousedown="up_low_divline_move(event);">
+    " onmouseover="style.opacity='0.8';" onmouseout="style.opacity='0';" onmousedown="upLowDivlineMove(event);">
   </div>
 </body>
