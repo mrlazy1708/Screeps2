@@ -16,7 +16,9 @@ http
       response.writeHead(200, { "content-Type": "text/html" });
       const data = JSON.parse(chunk.toString());
       if (data.request === "getRoomData")
-        response.end(JSON.stringify(engine.getRoomData(data.roomName)));
+        response.end(
+          JSON.stringify(engine.Game.rooms[data.roomName].recover())
+        );
     });
     request.on(`end`, () => {
       if (body.length === 0) {
@@ -50,16 +52,19 @@ console.log = () => {};
 
 const local = repl.start();
 Object.defineProperties(local.context, {
-  time: {
-    get: () => engine.time,
-    set: (value) => (engine.time = value),
+  console: { value: { log: console.log1 } },
+  reset: {
+    value: (seed = new Date()) => (engine.requireReset = seed),
   },
   interval: {
     get: () => engine.interval,
     set: (value) => (engine.interval = value),
   },
-  rooms: { value: engine.rooms },
-  creeps: { value: engine.creeps },
-  structures: { value: engine.structures },
-  console: { value: { log: console.log1 } },
+  time: {
+    get: () => engine.Game.time,
+    set: (value) => (engine.Game.time = value),
+  },
+  rooms: { value: engine.Game.rooms },
+  creeps: { value: engine.Game.creeps },
+  structures: { value: engine.Game.structures },
 });

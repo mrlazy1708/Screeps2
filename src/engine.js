@@ -15,28 +15,27 @@ class Engine {
     const opts = { encoding: `utf8`, flag: `a+` },
       recover = JSON.parse(fs.readFileSync(`./local/meta.json`, opts));
 
-    this.time = recover.time;
     this.interval = recover.interval;
-
     this.RNG = new utils.PRNG(...recover.RNG);
-
-    this.rooms = recover.rooms;
-
-    const system = { visible: () => true };
-    setup.create(this, this, system);
-    Object.assign(this, this.Game);
-
     this.players = _.mapValues(
       recover.players,
       (data, name) => new Player(data, name)
     );
+    this.Game = recover.Game;
 
-    // this.reset();
+    const system = { visible: () => true };
+    setup.create(this, this, system);
+
     console.log(`  Engine started`);
     this.runTick();
   }
   runTick() {
-    console.log(`Engine start running at ${this.time}`);
+    if (!_.isUndefined(this.requireReset)) {
+      this.reset(this.requireReset);
+      delete this.requireReset;
+    }
+
+    console.log(`Engine start running at ${this.Game.time}`);
     this.startTime = new Date();
 
     this.schedule = new Map();
@@ -49,11 +48,11 @@ class Engine {
     if (++this.ticked === _.keys(this.players).length) {
       console.log(`  Finishd tick with ${new Date() - this.startTime}ms`);
       this.ticked = 0;
-      this.time++;
+      this.Game.time++;
 
-      _.forEach(this.rooms, (room) => room.update());
-      _.forEach(this.creeps, (creep) => creep.update());
-      _.forEach(this.structures, (structure) => structure.update());
+      _.forEach(this.Game.rooms, (room) => room.update());
+      _.forEach(this.Game.creeps, (creep) => creep.update());
+      _.forEach(this.Game.structures, (structure) => structure.update());
 
       fs.writeFileSync(`./local/meta.json`, JSON.stringify(this.recover()));
 
@@ -63,80 +62,45 @@ class Engine {
   }
   reset(seed = new Date()) {
     console.log(`Resetting engine using seed ${seed}`);
-    this.time = 0;
+
     this.interval = 1000;
-    const RNG = (this.RNG = utils.PRNG.from(seed));
+    this.RNG = utils.PRNG.from(seed);
     this.players = {
       Alice: new Player({ rcl: 1 }, `Alice`),
     };
-    const paras = [WORLD_WIDTH, WORLD_HEIGHT, ROOM_WIDTH, ROOM_HEIGHT],
-      walls = utils.Maze.generate(...paras, RNG, 0.5, RNG.rand * 0.35),
-      swamps = utils.Maze.generate(...paras, RNG, 1.0, RNG.rand * 0.4);
-    this.rooms = _.mapKeys(
-      _.flatMap(_.range(-WORLD_HEIGHT >> 1, WORLD_HEIGHT >> 1), (y) =>
-        _.map(_.range(-WORLD_WIDTH >> 1, WORLD_WIDTH >> 1), (x) => {
-          function setTerrain(data, value) {
-            _.forEach(data, (row, y) =>
-              _.forEach(row, (sym, x) => {
-                if (!sym) raw[y][x] = value;
-              })
-            );
-          }
-          const raw = _.map(Array(ROOM_HEIGHT), () =>
-              Array(ROOM_WIDTH).fill(TERRAIN_PLAIN)
-            ),
-            rX = x + (WORLD_WIDTH >> 1),
-            rY = y + (WORLD_HEIGHT >> 1),
-            creeps = {},
-            structures = {};
-          setTerrain(swamps[rY][rX].data, TERRAIN_SWAMP);
-          setTerrain(walls[rY][rX].data, TERRAIN_WALL);
-          const terrain = real.Room.Terrain.compress(raw),
-            name = utils.roomName(x, y);
-          real.Room.Terrain.decompress(terrain);
-          return new real.Room(this, { terrain, creeps, structures }, name);
-        })
-      ),
-      `name`
+    this.Game = { time: 0, rooms: {} };
+
+    const system = { visible: () => true };
+    setup.create(this, this, system);
+
+    const args = [WORLD_WIDTH, WORLD_HEIGHT, ROOM_WIDTH, ROOM_HEIGHT, this.RNG],
+      walls = utils.Maze.generate(...args, 0.5, this.RNG.rand() * 0.35),
+      swamps = utils.Maze.generate(...args, 1.0, this.RNG.rand() * 0.4);
+
+    _.forEach(_.range(-WORLD_HEIGHT >> 1, WORLD_HEIGHT >> 1), (Y) =>
+      _.map(_.range(-WORLD_WIDTH >> 1, WORLD_WIDTH >> 1), (X) =>
+        this.Room.new(X, Y, walls, swamps)
+      )
     );
-    this.creeps = {};
-    this.structures = {};
-    _.forEach(this.rooms, (room) => {
-      room.construct();
-      const smoo = (x) => ((x - 0.5) ** 3 + 0.1) * 20,
-        fertility = Math.max(0, Math.floor(smoo(RNG.rand))),
-        nSources =
-          fertility -
-            _.countBy(
-              _.map(Array(fertility).fill(room), real.StructureSource.new)
-            )[null] || fertility;
-      /** a claimable room must have exactly 2 or 3 sources, otherwise it will be too barren or too rich */
-      if (nSources >= 2 && nSources <= 3) real.StructureController.new(room);
-    });
-    fs.writeFileSync(`./local/meta.json`, JSON.stringify(this.recover()));
-    // this.creeps = {};
-    // real.Creep.new(
-    //     this.rooms.W0N0,
-    //     {
-    //         id: `000`,
-    //         pos: [10, 10, `W0N0`],
-    //         head: TOP,
-    //         body: [WORK, CARRY, MOVE],
-    //         fatigue: 0,
-    //     },
-    //     `John`
-    // );
-  }
-  getRoomData(roomName) {
-    return this.rooms[roomName].recover();
+
+    // _.forEach(this.rooms, (room) => {
+    //   const smoo = (x) => ((x - 0.5) ** 3 + 0.1) * 20,
+    //     fertility = Math.max(0, Math.floor(smoo(RNG.rand)));
+    //   let nSources =
+    //     _.countBy(_.map(Array(fertility).fill(room), real.StructureSource.new))[
+    //       null
+    //     ] || fertility;
+    //   nSources = fertility - nSources;
+    //   if (nSources >= 2 && nSources <= 3) real.StructureController.new(room);
+    //   /** a claimable room must have exactly 2 or 3 sources, otherwise it will be too barren or too rich */
+    // });
   }
   recover() {
     const recover = {};
-    recover.time = this.time;
     recover.interval = this.interval;
     recover.RNG = this.RNG.recover();
     recover.players = _.mapValues(this.players, (player) => player.recover());
-    recover.rooms = _.mapValues(this.rooms, (room) => room.recover());
+    recover.Game = this.Game.recover();
     return recover;
   }
 }
