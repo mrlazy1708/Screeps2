@@ -1,14 +1,15 @@
 function upLowDivlineMove(event) {
   let mouseDown = true;
-  let divline = document.querySelector("#up-low-divline");
-  let upBox = document.querySelector(".upper-monitor");
-  let lowBox = document.querySelector(".lower-monitor");
+  const divline = document.querySelector("#up-low-divline");
+  const upBox = document.querySelector(".upper-monitor");
+  const lowBox = document.querySelector(".lower-monitor");
   window.onmouseup = () => (mouseDown = false);
   window.onmousemove = function (event) {
     if (mouseDown) {
-      divline.style.top = `${(100 * event.pageY) / window.innerHeight}%`;
-      upBox.style.height = `${(100 * event.pageY) / window.innerHeight}%`;
-      lowBox.style.height = `${100 * (1 - event.pageY / window.innerHeight)}%`;
+      const boxY = Math.max(event.pageY, window.outerHeight * 0.6);
+      divline.style.top = `${(100 * boxY) / window.innerHeight}%`;
+      upBox.style.height = `${(100 * boxY) / window.innerHeight}%`;
+      lowBox.style.height = `${100 * (1 - boxY / window.innerHeight)}%`;
     }
   };
 }
@@ -55,4 +56,15 @@ function pixiCanvasZoom(event) {
   canvas.style.left = `${mouseX - ratioX * size}px`;
   canvas.style.top = `${mouseY - ratioY * size}px`;
   clamp(upBox, canvas);
+}
+
+function consoleInput(element,event){
+  const output=document.querySelector(".console-ouput");
+  if(event.keyCode===13){
+    console.log(element.value);
+    output.innerHTML+=`${element.value.slice(2)}\<br\>`
+    element.value="> ";
+  }else if(event.keyCode===8&&element.value==="> "){
+    event.returnValue=false;
+  }
 }

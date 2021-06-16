@@ -13,17 +13,112 @@
 
 <body>
   <div class="upper-monitor" style="height: 80%; border-width: 0">
-    <div class="upper-left-monitor"
-      style="position: relative; z-index: 1; float: left; width: 80%; height: 100%; border-width: 0; background-color: black;"
-      onmousedown="pixiCanvasMove(event);" onmousewheel="pixiCanvasZoom(event);"></div>
-    <div class="upper-right-monitor"
+    <div
+      class="upper-left-monitor"
       style="
-    position: relative; z-index: 2; float: left; width: 20%; height: 100%; border-width: 0; background-color: lightslategray;"></div>
+        position: relative;
+        z-index: 1;
+        float: left;
+        width: 80%;
+        height: 100%;
+        border-width: 0;
+        background-color: #333333;
+      "
+      onmousedown="pixiCanvasMove(event);"
+      onmousewheel="pixiCanvasZoom(event);"
+    ></div>
+    <div
+      class="upper-right-monitor"
+      style="
+        position: relative;
+        z-index: 2;
+        float: left;
+        width: 20%;
+        height: 100%;
+        border-width: 0;
+        background-color: #161616;
+        box-shadow: 0 0 5px 1px #222222;
+      "
+    ></div>
   </div>
-  <div class="lower-monitor" style="
-  position: relative; z-index: 2; height: 20%; background-color: cadetblue;"></div>
-  <div id="up-low-divline" style="
-      position: absolute;
+  <div
+    class="lower-monitor"
+    style="
+      position: relative;
+      z-index: 2;
+      height: 20%;
+      box-shadow: 0 0 5px 1px #222222;
+    "
+  >
+    <div
+      class="console-menu"
+      style="
+        z-index: 2;
+        position: absolute;
+        left: 0;
+        right: 0;
+        height: 25px;
+        background-color: #424242;
+        color: #aaa;
+        padding-left: 10px;
+        border-top: 1px solid #666666;
+      "
+    >
+      Console
+    </div>
+    <p
+      class="console-ouput"
+      style="
+        overflow: auto;
+        position: absolute;
+        z-index: 2;
+        left: 0;
+        right: 0;
+        top: 25px;
+        bottom: 25px;
+        color: #aaa;
+        margin: 0;
+        padding: 5px 10px;
+        background-color: #2b2b2b;
+        font-size: small;
+        word-wrap: break-word;
+      "
+    ></p>
+    <div
+      class="console-input"
+      style="
+        position: absolute;
+        z-index: 2;
+        left: 0;
+        right: 0;
+        height: 25px;
+        bottom: 0;
+        color: #aaa;
+        padding-left: 10px;
+        background-color: #353535;
+      "
+    >
+      <input
+        value="> "
+        style="
+          font-family: consolas;
+          z-index: 2;
+          border: 0px;
+          background-color: #353535;
+          color: #aaa;
+          height: 100%;
+          width: 100%;
+          outline: 0;
+          font-size: small;
+        "
+        onkeydown="consoleInput(this,event);"
+      />
+    </div>
+  </div>
+  <div
+    id="up-low-divline"
+    style="
+      position: relative;
       z-index: 2;
       width: 100%;
       height: 5px;
@@ -31,6 +126,9 @@
       background-color: black;
       cursor: s-resize;
       opacity: 0;
-    " onmouseover="style.opacity='0.8';" onmouseout="style.opacity='0';" onmousedown="upLowDivlineMove(event);">
-  </div>
+    "
+    onmouseover="style.opacity='0.8';"
+    onmouseout="style.opacity='0';"
+    onmousedown="upLowDivlineMove(event);"
+  ></div>
 </body>
