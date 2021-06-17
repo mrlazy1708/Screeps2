@@ -11,6 +11,14 @@ function create(context, engine, player) {
   /** hidden Map for room objects */
   const _creeps = new Map(),
     _structures = new Map();
+  function addCreep(room, creep) {
+    _creeps.get(room.name)[creep.name] = creep;
+    context.Game.creeps[creep.name] = creep;
+  }
+  function addStructure(room, structure) {
+    _structures.get(room.name)[structure.id] = structure;
+    context.Game.structures[structure.id] = structure;
+  }
 
   /**
    * The main global game object containing all the game play information.
@@ -1069,14 +1077,16 @@ function create(context, engine, player) {
       delete StructureController.prototype.recover;
       delete StructureController.prototype.reduce;
     }
-    static new(room) {
-      let id = room.engine.RNG.randhex,
-        pos = room.select;
-      if (!(pos instanceof RoomPosition)) return null;
-      else pos = pos.recover();
-      const structureType = STRUCTURE_CONTROLLER,
-        controller = new StructureController(room, { pos, structureType }, id);
-      room.structures[id] = controller;
+    static new(room, pos) {
+      if (_.isUndefined(pos)) return null;
+      const id = engine.RNG.randhex(),
+        structureType = STRUCTURE_CONTROLLER,
+        level = 0,
+        progress = 0,
+        progressTotal = 0,
+        data = { pos, structureType, level, progress, progressTotal },
+        controller = new StructureController(data, id, room);
+      addStructure(room, controller);
       return controller;
     }
     constructor(data, _id, room) {
@@ -1115,14 +1125,15 @@ function create(context, engine, player) {
       delete StructureSource.prototype.recover;
       delete StructureSource.prototype.reduce;
     }
-    static new(room) {
-      let id = room.engine.RNG.randhex,
-        pos = room.select;
-      if (!(pos instanceof RoomPosition)) return null;
-      else pos = pos.recover();
-      const structureType = STRUCTURE_SOURCE,
-        source = new StructureSource(room, { pos, structureType }, id);
-      room.structures[id] = source;
+    static new(room, pos) {
+      if (_.isUndefined(pos)) return null;
+      const id = engine.RNG.randhex(),
+        structureType = STRUCTURE_SOURCE,
+        ticksToRegeneration = 0,
+        store = { [RESOURCE_ENERGY]: 0 },
+        data = { pos, structureType, ticksToRegeneration, store },
+        source = new StructureSource(data, id, room);
+      addStructure(room, source);
       return source;
     }
     /** constructor for StructureSource */

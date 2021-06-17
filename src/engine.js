@@ -77,29 +77,34 @@ class Engine {
       walls = utils.Maze.generate(...args, 0.5, this.RNG.rand() * 0.35),
       swamps = utils.Maze.generate(...args, 1.0, this.RNG.rand() * 0.4);
 
-    _.forEach(_.range(-WORLD_HEIGHT >> 1, WORLD_HEIGHT >> 1), (Y) =>
-      _.map(_.range(-WORLD_WIDTH >> 1, WORLD_WIDTH >> 1), (X) =>
-        this.Room.new(X, Y, walls, swamps)
-      )
+    this.rooms = _.flatMap(
+      _.range(-WORLD_HEIGHT >> 1, WORLD_HEIGHT >> 1),
+      (Y) =>
+        _.map(_.range(-WORLD_WIDTH >> 1, WORLD_WIDTH >> 1), (X) =>
+          this.Room.new(X, Y, walls, swamps)
+        )
     );
 
+    const smoo = (x) => Math.floor(((x - 0.5) ** 3 + 0.1) * 20);
     _.forEach(this.rooms, (room) => {
-      const smoo = (x) => ((x - 0.5) ** 3 + 0.1) * 20,
-        fertility = Math.max(0, Math.floor(smoo(RNG.rand)));
-      
-    });
+      const fertility = smoo(this.RNG.rand()),
+        poss = _.filter(
+          _.flatMap(_.range(5, ROOM_HEIGHT - 5), (y) =>
+            _.map(_.range(5, ROOM_WIDTH - 5), (x) => [x, y])
+          ),
+          ([x, y]) => _.isEqual(room.at(x, y), [TERRAIN_WALL])
+        );
 
-    // _.forEach(this.rooms, (room) => {
-    //   const smoo = (x) => ((x - 0.5) ** 3 + 0.1) * 20,
-    //     fertility = Math.max(0, Math.floor(smoo(RNG.rand)));
-    //   let nSources =
-    //     _.countBy(_.map(Array(fertility).fill(room), real.StructureSource.new))[
-    //       null
-    //     ] || fertility;
-    //   nSources = fertility - nSources;
-    //   if (nSources >= 2 && nSources <= 3) real.StructureController.new(room);
-    //   /** a claimable room must have exactly 2 or 3 sources, otherwise it will be too barren or too rich */
-    // });
+      const sources = _.map(Array(fertility).fill(room), (room) =>
+          this.StructureSource.new(room, this.RNG.pick(poss))
+        ),
+        actual = fertility - (_.countBy(sources)[null] || 0);
+
+      const controller =
+        actual >= 2 && actual <= 3
+          ? this.StructureController.new(room, this.RNG.pick(poss))
+          : null;
+    });
   }
   recover() {
     const recover = {};
