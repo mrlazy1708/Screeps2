@@ -1,3 +1,5 @@
 [submodule "lib/two"]
 	path = lib/two
 	url = https://github.com/jonobr1/two.js.git
+[submodule "two"]
+	branch = master
