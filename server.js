@@ -10,39 +10,49 @@ const engine = new Engine();
 
 http
   .createServer(function (request, response) {
-    const { headers, method, url } = request,
-      body = [];
-    request.on(`data`, (chunk) => {
-      response.writeHead(200, { "content-Type": "text/html" });
-      const data = JSON.parse(chunk.toString());
-      if (data.request === "getRoomData")
-        response.end(
-          JSON.stringify(engine.Game.rooms[data.roomName].recover())
-        );
-    });
-    request.on(`end`, () => {
-      if (body.length === 0) {
-        if (url === `/`) {
-          response.writeHead(200, { "content-Type": "text/html" });
-          fs.createReadStream(`./remote/index.html`).pipe(response);
-        } else if (url === `/index.css`) {
-          response.writeHead(200, { "content-Type": "text/css" });
-          fs.createReadStream("./remote/index.css").pipe(response);
-        } else if (url === `/index.js`) {
-          response.writeHead(200, { "content-Type": "text/javascript" });
-          fs.createReadStream("./remote/index.js").pipe(response);
-        } else if (url === `/display.js`) {
-          response.writeHead(200, { "content-Type": "text/javascript" });
-          fs.createReadStream("./remote/display.js").pipe(response);
-        } else if (url === `/monitor.js`) {
-          response.writeHead(200, { "content-Type": "text/javascript" });
-          fs.createReadStream("./remote/monitor.js").pipe(response);
-        } else {
-          response.writeHead(404, { "content-Type": "text/plain" });
-          // response.end(`YOU SPELLED IT WRONG`);
-        }
-      }
-    });
+    const { headers, method, url } = request;
+    switch (url) {
+      case `/`:
+        response.writeHead(200, { "content-Type": "text/html" });
+        fs.createReadStream(`./remote/index.html`).pipe(response);
+        break;
+      case `/cat.gif`:
+        response.writeHead(200, { "content-Type": "image/gif" });
+        fs.createReadStream(`./remote/cat.gif`).pipe(response);
+        break;
+      case `/index.css`:
+        response.writeHead(200, { "content-Type": "text/css" });
+        fs.createReadStream("./remote/index.css").pipe(response);
+        break;
+      case `/index.js`:
+        response.writeHead(200, { "content-Type": "text/javascript" });
+        fs.createReadStream("./remote/index.js").pipe(response);
+        break;
+      case `/display.js`:
+        response.writeHead(200, { "content-Type": "text/javascript" });
+        fs.createReadStream("./remote/display.js").pipe(response);
+        break;
+      case `/monitor.js`:
+        response.writeHead(200, { "content-Type": "text/javascript" });
+        fs.createReadStream("./remote/monitor.js").pipe(response);
+        break;
+      case `/data`:
+        response.writeHead(200, { "content-Type": "text/plain" });
+        request.on(`data`, (chunk) => {
+          try {
+            const data = JSON.parse(chunk.toString());
+            if (data.request === "getRoomData")
+              response.write(
+                JSON.stringify(engine.Game.rooms[data.roomName].recover())
+              );
+          } catch (err) {}
+        });
+        request.on(`end`, () => response.end());
+        break;
+      default:
+        response.writeHead(404, { "content-Type": "text/html" });
+        fs.createReadStream("./remote/404.html").pipe(response);
+    }
   })
   .listen(8080);
 

@@ -14,7 +14,7 @@ canvas.style.left = 0.5 * (monitor.offsetWidth - canvas.offsetWidth) + "px";
 canvas.style.top = 0.5 * (monitor.offsetHeight - canvas.offsetHeight) + "px";
 
 function main() {
-  fetch(`http://127.0.0.1:8080/`, {
+  fetch(`http://127.0.0.1:8080/data`, {
     method: `POST`,
     body: `{"request": "getRoomData", "roomName": "W0N0"}`,
   })
@@ -24,6 +24,7 @@ function main() {
 
 function refresh(object) {
   info = object;
+  console.log(object);
   if (cnt == 0) {
     console.log(object);
     cnt++;

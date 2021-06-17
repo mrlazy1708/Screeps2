@@ -83,6 +83,12 @@ class Engine {
       )
     );
 
+    _.forEach(this.rooms, (room) => {
+      const smoo = (x) => ((x - 0.5) ** 3 + 0.1) * 20,
+        fertility = Math.max(0, Math.floor(smoo(RNG.rand)));
+      
+    });
+
     // _.forEach(this.rooms, (room) => {
     //   const smoo = (x) => ((x - 0.5) ** 3 + 0.1) * 20,
     //     fertility = Math.max(0, Math.floor(smoo(RNG.rand)));
