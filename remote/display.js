@@ -120,7 +120,9 @@ export class Display {
       this.refreshCreep(info);
       this.totalRefresh = false;
     } else {
-      // this.refreshCreep(info);
+      this.Creep.group.remove();
+      this.Creep.group = new Two.Group().addTo(this.two.scene);
+      this.refreshCreep(info);
     }
   }
 }
