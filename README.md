@@ -10,23 +10,39 @@ For a detailed introduction to the game, please refer to the [Screeps2 wiki](htt
 
 
 
-## Server Launch
+## Installation
 
 Prerequisites:
 
-- Node.js LTS
-
-- Lodash
-
-**Console Launch**
+- [**Node.js**](https://nodejs.org) - local running environment, version 15.0.0 or higher
+- [**Lodash**](https://lodash.com) - provide functional utilities for JavaScript
 
 ```bash
 git clone https://github.com/mrlazy1708/Screeps2.git
+```
+
+
+
+## Server Launch
+
+**Console Server**
+
+- **Launch**
+
+```bash
 cd Screeps2   	# cd to the project's root dir
 node server.js	# launch server
 ```
 
 The server is expected to running in the background. Go to [localhost](http://127.0.0.1:8080/) via browser to play the game. Public access is currently not supported.
+
+- **Close**
+
+Use a `EOF` signal (Ctrl + D or Ctrl + C twice) to exit the node [REPL](https://nodejs.org/api/repl.html) environment locally, and the server will close the engine, then close all http connections and finally exit properly. 
+
+
+
+**GUI Server**
 
 Only console launcher is supported now. GUI server development is scheduled.
 
