@@ -57,6 +57,11 @@ class Engine {
 
       fs.writeFileSync(`./local/meta.json`, JSON.stringify(this.recover()));
 
+      // const creep = this.Game.creeps.John,
+      //   room = creep.room;
+      // console.log1(`print room ${room.name}`);
+      // console.log1(room.print());
+
       const interval = this.interval - (new Date() - this.startTime);
       if (this.running !== true) {
         assert(_.isFunction(this.running), `Invalid callback ${this.running}`);

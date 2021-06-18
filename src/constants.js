@@ -95,6 +95,7 @@ Object.assign(module.exports, {
 
   /** creep properties */
   /** basic */
+  CREEP_SPAWN_TIME: 3,
   CREEP_LIFE_TIME: 1500,
   CREEP_CLAIM_LIFE_TIME: 600,
   CREEP_CORPSE_RATE: 0.2,
@@ -265,7 +266,6 @@ Object.assign(module.exports, {
   SPAWN_ENERGY_START: 300,
   SPAWN_HITS: 5000,
   SPAWN_RENEW_RATIO: 1.2,
-  SPAWN_TIME: 3,
   /** storage */
   STORAGE_CAPACITY: 1000000,
   STORAGE_HITS: 10000,

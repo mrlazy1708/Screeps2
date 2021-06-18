@@ -19,45 +19,18 @@
 
 // const ret = spawn.spawnCreep([WORK, CARRY, MOVE], Game.time);
 
-const room = Game.rooms.W0N0;
-console.log(Game.time, room.name, room.creeps);
+_.forEach(Game.spawns, (spawn) => {
+  if (_.keys(Game.creeps).length <= 10) {
+    const ret = spawn.spawnCreep([WORK, CARRY, MOVE], Math.random().toString());
+    console.log1(spawn.name, spawn.store.getUsed(RESOURCE_ENERGY), ret);
+  } else console.log1(`Over populated creeps!`);
+});
+_.forEach(Game.creeps, (creep) => {
+  console.log1(creep.name, creep.pos, creep.spawning);
 
-const creep = Game.creeps.John;
-if (creep)
-  console.log(
-    `creep`,
-    creep.id,
-    creep.pos,
-    creep.ticksToLive,
-    creep.store.getUsed(RESOURCE_ENERGY)
-  );
+  if (creep.spawning) return;
 
-const controller = room.controller;
-if (controller)
-  console.log(
-    `controller`,
-    controller.id,
-    controller.level,
-    controller.progress,
-    controller.progressTotal
-  );
-
-const source = _.head(
-  _.filter(room.find(FIND_STRUCTURES), {
-    structureType: STRUCTURE_SOURCE,
-  })
-);
-if (source)
-  console.log(
-    `source`,
-    source.id,
-    source.store.getUsed(RESOURCE_ENERGY),
-    source.ticksToRegeneration
-  );
-
-if (creep) {
   creep.memory.task = creep.memory.task || "harvest";
-
   if (
     creep.memory.task === "harvest" &&
     creep.store.getFree(RESOURCE_ENERGY) === 0
@@ -70,17 +43,24 @@ if (creep) {
   )
     creep.memory.task = "harvest";
 
+  const controller = creep.room.controller,
+    source = _.head(
+      _.filter(creep.room.find(FIND_STRUCTURES), {
+        structureType: STRUCTURE_SOURCE,
+      })
+    );
+
   const ret1 =
     creep.memory.task === "harvest"
       ? creep.harvest(source)
       : creep.upgradeController(controller);
-  console.log(creep.memory.task, ret1);
+  console.log1(creep.memory.task, ret1);
   if (ret1 === ERR_NOT_IN_RANGE)
-    console.log(
+    console.log1(
       `move to`,
       creep.memory.task,
       creep.memory.task === "harvest"
         ? creep.moveTo(source)
         : creep.moveTo(controller)
     );
-}
+});

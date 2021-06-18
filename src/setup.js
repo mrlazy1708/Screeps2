@@ -15,9 +15,17 @@ function create(context, engine, player) {
     _creeps.get(room.name)[creep.name] = creep;
     context.Game.creeps[creep.name] = creep;
   }
+  function deleteCreep(room, creep) {
+    delete _creeps.get(room.name)[creep.name];
+    delete context.Game.creeps[creep.name];
+  }
   function addStructure(room, structure) {
     _structures.get(room.name)[structure.id] = structure;
     context.Game.structures[structure.id] = structure;
+  }
+  function deleteStructure(room, structure) {
+    delete _structures.get(room.name)[structure.id];
+    delete context.Game.structures[structure.id];
   }
 
   /**
@@ -307,9 +315,9 @@ function create(context, engine, player) {
       assert(!_.isUndefined(x) && !_.isNull(x), `Invalid arguments!`);
       if (_.isString(x.roomName))
         return new RoomPosition(x.x, x.y, roomName || x.roomName);
-      assert(x >= 0 && x < ROOM_WIDTH, `Invalid x coordinate!`);
-      assert(y >= 0 && y < ROOM_HEIGHT, `Invalid y coordinate!`);
-      assert.match(roomName, /[WE]\d+[NS]\d+/, `Invalid room name!`);
+      assert(x >= 0 && x < ROOM_WIDTH, `Invalid x coordinate ${x}!`);
+      assert(y >= 0 && y < ROOM_HEIGHT, `Invalid y coordinate ${y}!`);
+      assert.match(roomName, /[WE]\d+[NS]\d+/, `Invalid roomName ${roomName}!`);
       this.x = x;
       this.y = y;
       this.roomName = roomName;
@@ -668,7 +676,15 @@ function create(context, engine, player) {
       delete RoomObject.prototype.reduce;
     }
     constructor(data, id, room) {
-      this.id = id;
+      Object.defineProperty(this, `id`, {
+        configurable: false,
+        enumerable: true,
+        get: () => id,
+        set: () => {
+          throw new SyntaxError(`Cannot set id of RoomObject`);
+        },
+      });
+
       this.room = room;
 
       let pos = data.pos;
@@ -688,15 +704,15 @@ function create(context, engine, player) {
     update() {
       if (!engine.schedule.has(this.id)) return;
       const callback = engine.schedule.get(this.id);
-      assert(_.isFunction(callback), `Invalid action name!`);
+      assert(_.isFunction(callback), `Invalid action ${callback}!`);
       const ret = callback.call(this, context, ...arguments);
       this.pos = this.pos.clamp();
       if (this.room.name != this.pos.roomName) {
-        if (this instanceof Creep) delete this.room.creeps[this.name];
-        if (this instanceof Structure) delete this.room.structures[this.id];
+        if (this instanceof Creep) deleteCreep(this.room, this);
+        if (this instanceof Structure) deleteStructure(this.room, this);
         this.room = context.Game.rooms[this.pos.roomName];
-        if (this instanceof Creep) this.room.creeps[this.name] = this;
-        if (this instanceof Structure) this.room.structures[this.id] = this;
+        if (this instanceof Creep) addCreep(this.room, this);
+        if (this instanceof Structure) addStructure(this.room, this);
       }
       return ret;
     }
@@ -786,26 +802,48 @@ function create(context, engine, player) {
    */
   class Creep extends RoomObject {
     static reduce() {
+      delete Creep.prototype.new;
       delete Creep.prototype.update;
       delete Creep.prototype.remove;
       delete Creep.prototype.recover;
       delete Creep.prototype.reduce;
     }
+    static new(room, spawn_, name, directions, body, owner) {
+      const id = engine.RNG.randhex(),
+        pos = spawn_.pos,
+        hitsMax = body.length * CREEP_BODYPART_HITS,
+        hits = hitsMax,
+        spawning = true,
+        remainingTime = body.length * CREEP_SPAWN_TIME,
+        spawn = spawn_.name,
+        // prettier-ignore
+        creep = new Creep({ pos, hits, hitsMax, id, body, owner, spawning,
+          directions, remainingTime, spawn}, name, room);
+      addCreep(room, creep);
+      return creep;
+    }
     constructor(data, name, room) {
       super(data, data.id, room);
       this.name = name;
 
-      this.head = data.head;
       this.body = data.body;
-      this.fatigue = data.fatigue;
-      this.ticksToLive = data.ticksToLive;
       this.owner = data.owner;
       this.my = this.owner === player.name;
-      this.store = new Store(
-        data.store,
-        [RESOURCE_ENERGY],
-        this.getActiveBodyparts(CARRY) * CARRY_CAPACITY
-      );
+      if ((this.spawning = data.spawning)) {
+        this.directions = data.directions;
+        this.needTime = this.body.length * CREEP_SPAWN_TIME;
+        this.remainingTime = data.remainingTime;
+        this.spawn = data.spawn;
+      } else {
+        this.head = data.head;
+        this.fatigue = data.fatigue;
+        this.ticksToLive = data.ticksToLive;
+        this.store = new Store(
+          data.store,
+          [RESOURCE_ENERGY],
+          this.getActiveBodyparts(CARRY) * CARRY_CAPACITY
+        );
+      }
     }
 
     /** update creep state */
@@ -814,16 +852,34 @@ function create(context, engine, player) {
 
       this.fatigue -= this.getActiveBodyparts(MOVE) * (MOVE_POWER + 1);
       if (this.fatigue <= 0) this.fatigue = 0;
-      this.ticksToLive--;
-      if (this.ticksToLive <= 0) this.remove();
-    }
 
-    /** remove creep */
-    remove() {
-      super.remove(...arguments);
-
-      delete this.room.creeps[this.name];
-      delete context.Game.creeps[this.name];
+      if (this.spawning) {
+        if (this.remainingTime-- === 0) {
+          const directions = _.filter(this.directions, (dir) => {
+            const spawn = context.Game.spawns[this.spawn];
+            if (_.isUndefined(spawn)) return false;
+            const look = spawn.pos.clone().move(dir).look();
+            return look.length === 1 && _.head(look) !== TERRAIN_WALL;
+          });
+          if (!_.isEmpty(directions)) {
+            this.head = engine.RNG.pick(directions);
+            this.pos.move(this.head);
+            this.fatigue = 0;
+            this.ticksToLive = _.includes(this.body, CLAIM)
+              ? CREEP_CLAIM_LIFE_TIME
+              : CREEP_LIFE_TIME;
+            this.store = new Store(
+              { [RESOURCE_ENERGY]: 0 },
+              [RESOURCE_ENERGY],
+              this.getActiveBodyparts(CARRY) * CARRY_CAPACITY
+            );
+            this.spawning = false;
+          }
+        }
+      } else {
+        this.ticksToLive--;
+        if (this.ticksToLive <= 0) deleteCreep(this.room, this);
+      }
     }
 
     /**
@@ -877,6 +933,7 @@ function create(context, engine, player) {
      */
     move(dir) {
       if (!this.my) return ERR_NOT_OWNER;
+      if (this.ticksToLive > CREEP_LIFE_TIME) return ERR_NOT_AVAILABLE;
       if (!this.getActiveBodyparts(MOVE)) return ERR_NO_BODYPART;
       if (!_.includes(utils.dirs, dir)) return ERR_INVALID_ARGS;
       if (this.fatigue > 0) return ERR_TIRED;
@@ -905,8 +962,8 @@ function create(context, engine, player) {
      * creep.moveByPath(path);
      */
     moveByPath(path) {
-      console.log(path);
       if (!this.my) return ERR_NOT_OWNER;
+      if (this.ticksToLive > CREEP_LIFE_TIME) return ERR_NOT_AVAILABLE;
       if (!this.getActiveBodyparts(MOVE)) return ERR_NO_BODYPART;
       if (!_.isArray(path)) return ERR_INVALID_ARGS;
       if (path.length === 0) return ERR_NO_PATH;
@@ -935,6 +992,7 @@ function create(context, engine, player) {
      */
     moveTo(target, arg = {}, opts = {}) {
       if (!this.my) return ERR_NOT_OWNER;
+      if (this.ticksToLive > CREEP_LIFE_TIME) return ERR_NOT_AVAILABLE;
       if (!this.getActiveBodyparts(MOVE)) return ERR_NO_BODYPART;
       if (_.isUndefined(target) || _.isNull(target)) return ERR_INVALID_ARGS;
       if (!(target instanceof RoomPosition)) {
@@ -972,6 +1030,7 @@ function create(context, engine, player) {
      */
     harvest(target) {
       if (!this.my) return ERR_NOT_OWNER;
+      if (this.ticksToLive > CREEP_LIFE_TIME) return ERR_NOT_AVAILABLE;
       if (target instanceof StructureSource) {
         if (!this.getActiveBodyparts(WORK)) return ERR_NO_BODYPART;
         if (this.pos.getRangeTo(target) > HARVEST_RANGE)
@@ -1007,6 +1066,7 @@ function create(context, engine, player) {
      */
     upgradeController(target) {
       if (!this.my) return ERR_NOT_OWNER;
+      if (this.ticksToLive > CREEP_LIFE_TIME) return ERR_NOT_AVAILABLE;
       if (!this.getActiveBodyparts(WORK)) return ERR_NO_BODYPART;
       if (!(target instanceof StructureController)) return ERR_INVALID_ARGS;
       if (this.pos.getRangeTo(target) > UPGRADE_CONTROLLER_RANGE)
@@ -1028,12 +1088,18 @@ function create(context, engine, player) {
     recover() {
       const recover = super.recover();
       recover.id = this.id;
-      recover.head = this.head;
       recover.body = this.body;
-      recover.fatigue = this.fatigue;
-      recover.ticksToLive = this.ticksToLive;
       recover.owner = this.owner;
-      recover.store = this.store.recover();
+      if ((recover.spawning = this.spawning)) {
+        recover.directions = this.directions;
+        recover.remainingTime = this.remainingTime;
+        recover.spawn = this.spawn;
+      } else {
+        recover.head = this.head;
+        recover.fatigue = this.fatigue;
+        recover.ticksToLive = this.ticksToLive;
+        recover.store = this.store.recover();
+      }
       return recover;
     }
   }
@@ -1080,10 +1146,7 @@ function create(context, engine, player) {
     static new(room, pos) {
       if (_.isUndefined(pos)) return null;
       const under = room.at(...pos);
-      assert(
-        _.isEqual(under, [TERRAIN_WALL]),
-        `Invalid pos with ${under}, expteced terrain wall`
-      );
+      assert(_.isEqual(under, [TERRAIN_WALL]), `Invalid pos with ${under}`);
       const id = engine.RNG.randhex(),
         structureType = STRUCTURE_CONTROLLER,
         level = 0,
@@ -1133,10 +1196,7 @@ function create(context, engine, player) {
     static new(room, pos) {
       if (_.isUndefined(pos)) return null;
       const under = room.at(...pos);
-      assert(
-        _.isEqual(under, [TERRAIN_WALL]),
-        `Invalid pos with ${under}, expected terrain wall`
-      );
+      assert(_.isEqual(under, [TERRAIN_WALL]), `Invalid pos with ${under}`);
       const id = engine.RNG.randhex(),
         structureType = STRUCTURE_SOURCE,
         ticksToRegeneration = 0,
@@ -1199,25 +1259,25 @@ function create(context, engine, player) {
   }
 
   /** StructureSpawn class defination inherited from OwnedStructure */
-  class StructureSpawn extends Structure {
+  class StructureSpawn extends OwnedStructure {
     static reduce() {
       delete StructureSpawn.prototype.update;
       delete StructureSpawn.prototype.recover;
       delete StructureSpawn.prototype.reduce;
     }
-    static new(room, pos) {
+    static new(room, pos, name, owner) {
       if (_.isUndefined(pos)) return null;
       const under = room.at(...pos);
-      assert(
-        under.length === 1 && _.head(under) !== TERRAIN_WALL,
-        `Invalid pos with ${under}, expected terrain plain or swamp`
-      );
+      assert(under.length === 1, `Invalid pos with ${under}`);
+      assert(_.head(under) !== TERRAIN_WALL, `Invalid pos with ${under}`);
       const id = engine.RNG.randhex(),
         structureType = STRUCTURE_SPAWN,
         hitsMax = SPAWN_HITS,
         hits = hitsMax,
+        spawning = null,
         store = { [RESOURCE_ENERGY]: SPAWN_ENERGY_CAPACITY },
-        data = { pos, structureType, hits, hitsMax, store },
+        // prettier-ignore
+        data = { pos, hits, hitsMax, structureType, name, owner, spawning, store },
         spawn = new StructureSpawn(data, id, room);
       addStructure(room, spawn);
       return spawn;
@@ -1227,6 +1287,7 @@ function create(context, engine, player) {
       super(...arguments);
 
       this.name = data.name;
+      this.spawning = data.spawning;
       this.store = new Store(
         data.store,
         [RESOURCE_ENERGY],
@@ -1237,36 +1298,33 @@ function create(context, engine, player) {
     update() {
       super.update(...arguments);
 
-      this.store.add(RESOURCE_ENERGY, SPAWN_ENERGY_GENERATION_RATE);
-      if (this.getUsed(RESOURCE_ENERGY) >= SPAWN_ENERGY_CAPACITY)
-        this.store.set(RESOURCE_ENERGY, SPAWN_ENERGY_CAPACITY);
+      this.store.addUsed(RESOURCE_ENERGY, SPAWN_ENERGY_GENERATION_RATE);
+      if (this.store.getUsed(RESOURCE_ENERGY) >= SPAWN_ENERGY_CAPACITY)
+        this.store.setUsed(RESOURCE_ENERGY, SPAWN_ENERGY_CAPACITY);
     }
     /** spawnCreep */
-    spawnCreep(body, name, opts) {
-      if (_.isUndefined(name)) return ERR_INVALID_ARGS;
-      if (_.sumBy(body, (bodypart) => !_.includes(CREEP_BODYPARTS, bodypart)))
+    spawnCreep(body, name, opts = {}) {
+      if (!this.my) return ERR_NOT_OWNER;
+      if (!_.isArray(body)) return ERR_INVALID_ARGS;
+      if (!_.every(body, (bodypart) => _.includes(CREEP_BODYPARTS, bodypart)))
         return ERR_INVALID_ARGS;
-      if (this.engine.creeps[name] !== undefined) return ERR_NAME_EXISTS;
-      const poss = _.pickBy(
-        _.mapValues(utils.dirs, (dir) => {
-          const pos = this.move(dir);
-          if (pos instanceof RoomPosition) return pos;
-        })
-      );
-      if (_.isEmpty(poss)) return ERR_NO_PATH;
-      const [dir, pos] = this.engine.RNG.select(poss);
-      (this.action = `spawnCreep_`), (this.args = [dir, pos, body, name, opts]);
+      if (body.length > MAX_CREEP_SIZE) return ERR_INVALID_ARGS;
+      if (!_.isString(name)) return ERR_INVALID_ARGS;
+      if (!_.isUndefined(context.Game.creeps[name])) return ERR_NAME_EXISTS;
+      if (!_.isObject(opts)) return ERR_INVALID_ARGS;
+      const directions = opts.directions || utils.dirs;
+      if (_.isEmpty(directions)) return ERR_NO_PATH;
+      this.schedule(function (context) {
+        context.Creep.new(this.room, this, name, directions, body, this.owner);
+        this.spawning = name;
+      });
       return OK;
-    }
-    spawnCreep_(head, pos, body, name, opts) {
-      const id = this.engine.RNG.randhex,
-        store = {},
-        fatigue = 0;
-      Creep.new(this.room, { pos, id, head, body, fatigue, store }, name);
     }
     /** get recovering data */
     recover() {
       const recover = super.recover();
+      recover.name = this.name;
+      recover.spawning = this.spawning;
       recover.store = this.store.recover();
       return recover;
     }
@@ -1297,13 +1355,7 @@ module.exports.create = create;
 
 function reduce(context, engine, player) {
   context.Game.reduce();
-  _.forEach(context.Game.rooms, (room) => {
-    delete room.creeps;
-    delete room.structures;
-  });
-
   context.Memory.reduce();
-
   context.Room.reduce();
   context.RoomPosition.reduce();
   context.RoomTerrain.reduce();
@@ -1314,5 +1366,22 @@ function reduce(context, engine, player) {
   context.StructureSource.reduce();
   context.OwnedStructure.reduce();
   context.StructureSpawn.reduce();
+
+  _.forEach(context.Game.creeps, (creep) => {
+    if (creep.spawning) {
+      creep.body = _.take(
+        creep.body,
+        creep.body.length - Math.ceil(creep.remainingTime / CREEP_SPAWN_TIME)
+      );
+      creep.spawn = context.Game.spawns[creep.spawn];
+    }
+  });
+  _.forEach(
+    context.Game.spawns,
+    (spawn) =>
+      (spawn.spawning = spawn.spawning
+        ? context.Game.creeps[spawn.spawning]
+        : null)
+  );
 }
 module.exports.reduce = reduce;
