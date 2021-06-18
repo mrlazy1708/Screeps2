@@ -8,7 +8,7 @@ const Engine = require(`./src/engine`);
 
 const engine = new Engine();
 
-http
+const server = http
   .createServer(function (request, response) {
     const { headers, method, url } = request;
     switch (url) {
@@ -61,6 +61,7 @@ console.log1 = console.log;
 console.log = () => {};
 
 const local = repl.start();
+local.on(`exit`, () => server.close(() => engine.close()));
 Object.defineProperties(local.context, {
   console: { value: { log: console.log1 } },
   reset: {

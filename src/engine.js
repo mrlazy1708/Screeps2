@@ -27,6 +27,7 @@ class Engine {
     setup.create(this, this, system);
 
     console.log(`  Engine started`);
+    this.running = true;
     this.runTick();
   }
   runTick() {
@@ -57,7 +58,7 @@ class Engine {
       fs.writeFileSync(`./local/meta.json`, JSON.stringify(this.recover()));
 
       const interval = this.interval - (new Date() - this.startTime);
-      setTimeout(this.runTick.bind(this), interval);
+      if (this.running) setTimeout(this.runTick.bind(this), interval);
     }
   }
   reset(seed = new Date()) {
@@ -105,6 +106,9 @@ class Engine {
           ? this.StructureController.new(room, this.RNG.pick(poss))
           : null;
     });
+  }
+  close() {
+    return (this.running = false);
   }
   recover() {
     const recover = {};
