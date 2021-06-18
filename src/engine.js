@@ -107,8 +107,10 @@ class Engine {
           : null;
     });
   }
-  close() {
-    return (this.running = false);
+  close(callback) {
+    this.running = false;
+    console.log1(`Engine closed`);
+    return callback();
   }
   recover() {
     const recover = {};

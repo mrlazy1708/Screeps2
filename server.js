@@ -60,8 +60,19 @@ console.log(`Server running at http://127.0.0.1:8080/`);
 console.log1 = console.log;
 console.log = () => {};
 
+const sockets = new Set();
+server.on(`connection`, (socket) => {
+  sockets.add(socket);
+  server.once(`close`, () => sockets.delete(socket));
+});
+
 const local = repl.start();
-local.on(`exit`, () => server.close(() => engine.close()));
+local.on(`exit`, () =>
+  engine.close(() => {
+    for (const socket of sockets) socket.destroy(), sockets.delete(socket);
+    server.close(() => console.log1(`Server closed`));
+  })
+);
 Object.defineProperties(local.context, {
   console: { value: { log: console.log1 } },
   reset: {

@@ -195,8 +195,8 @@ function create(context, engine, player) {
       if (!(pos instanceof RoomPosition))
         pos = new RoomPosition(pos, arg, this.name);
       const terrain = this.terrain.at(pos),
-        creeps = _.filter(context.Game.creeps, { pos: pos }),
-        structures = _.filter(context.Game.structures, { pos: pos });
+        creeps = _.filter(_creeps.get(this.name), { pos: pos }),
+        structures = _.filter(_structures.get(this.name), { pos: pos });
       return _.concat([terrain], creeps, structures);
     }
 
@@ -1079,6 +1079,11 @@ function create(context, engine, player) {
     }
     static new(room, pos) {
       if (_.isUndefined(pos)) return null;
+      const under = room.at(...pos);
+      assert(
+        _.isEqual(under, [TERRAIN_WALL]),
+        `Invalid pos with ${under}, expteced terrain wall`
+      );
       const id = engine.RNG.randhex(),
         structureType = STRUCTURE_CONTROLLER,
         level = 0,
@@ -1127,6 +1132,11 @@ function create(context, engine, player) {
     }
     static new(room, pos) {
       if (_.isUndefined(pos)) return null;
+      const under = room.at(...pos);
+      assert(
+        _.isEqual(under, [TERRAIN_WALL]),
+        `Invalid pos with ${under}, expected terrain wall`
+      );
       const id = engine.RNG.randhex(),
         structureType = STRUCTURE_SOURCE,
         ticksToRegeneration = 0,
@@ -1165,6 +1175,7 @@ function create(context, engine, player) {
   class OwnedStructure extends Structure {
     static reduce() {
       delete OwnedStructure.prototype.reduce;
+      delete OwnedStructure.prototype.recover;
     }
     /** constructor for OwnedStructure */
     constructor(data) {
@@ -1179,6 +1190,12 @@ function create(context, engine, player) {
         context.Memory.structures || {});
       return (structures[this.id] = structures[this.id] || {});
     }
+    /** get recovering data */
+    recover() {
+      const recover = super.recover();
+      recover.owner = this.owner;
+      return recover;
+    }
   }
 
   /** StructureSpawn class defination inherited from OwnedStructure */
@@ -1187,6 +1204,23 @@ function create(context, engine, player) {
       delete StructureSpawn.prototype.update;
       delete StructureSpawn.prototype.recover;
       delete StructureSpawn.prototype.reduce;
+    }
+    static new(room, pos) {
+      if (_.isUndefined(pos)) return null;
+      const under = room.at(...pos);
+      assert(
+        under.length === 1 && _.head(under) !== TERRAIN_WALL,
+        `Invalid pos with ${under}, expected terrain plain or swamp`
+      );
+      const id = engine.RNG.randhex(),
+        structureType = STRUCTURE_SPAWN,
+        hitsMax = SPAWN_HITS,
+        hits = hitsMax,
+        store = { [RESOURCE_ENERGY]: SPAWN_ENERGY_CAPACITY },
+        data = { pos, structureType, hits, hitsMax, store },
+        spawn = new StructureSpawn(data, id, room);
+      addStructure(room, spawn);
+      return spawn;
     }
     /** constructor for StructureSpawn */
     constructor(data) {
@@ -1258,24 +1292,6 @@ function create(context, engine, player) {
   /** export Game & Memory */
   context.Game = new Game();
   context.Memory = new Memory();
-
-  // const data =
-  //   "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx,xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx,xxxxxxxxxxxx~~~xxxxxxxxxxxxxxxxxxx    ~~~    ~~~~xxxxxx~~~~~~~~~,xxx~~ xxxxx~~~~~xxxxxxxxxxxxxxxxxx           ~~~~ xxxxx~~~      ,xxx~   xxx       xx       ~~~~xxxxx          ~~~   xxxxx~       ,xxx               x       ~~~~  xxxxx        ~~      xxxxxx     ,xxx                       ~~~~    xxxxx      ~         xxxxx    ,xxxx                      ~~~        xxxxxx                     ,xxxx                       ~~         xxxxx                     ,xxxxx~~                    ~~        ~~ x                       ,xxxxx~~~~               xxx ~~       ~~                         ,xxxxxx~~~~~              xx         ~~~                         ,xxxxxx~~~~~~     ~~~                ~~~                         ,xxxxxx~~~~~~~~  ~~~~~               ~~~                         ,xxxxx  ~~~~~~~~~~~~~~         ~~    ~~~                         ,xxxx    ~~xxxxx~~~~~                 ~~                         ,xxx      ~~xxxxxx                xxx ~~                         ,xx       ~~   xxxxx             xxxx                            ,xx              xxxx           xxx                        x     ,xx~               xx           xx              xxx       xxx    ,xx                       ~~   xx            xxxxxx      xxxx    ,xx                       ~~~               xxxxxxx     xxxxxx   ,xx                        ~~~             xxxxxxxxx   xxxxxx    ,xxxxxx              ~      ~~~           xxxxxxxxxxxxxxxxxxx    ,xxxxxxxx            ~      ~~~~         xxxxxxxxxxxxxxxxxxx     ,xxxxxxxxx                    ~~~        xxxxxxxxxxxxxxxxx       ,xxxxxxxx                       ~        xxxxxxxx                ,xxxxxx                             ~     xxxxxx                 ,xxxxx                             ~~~~   xxxxx                 ~,xxxxx                              ~~~~~ xxxx                  ~,xxxxxx                             ~~~~~~xxx                  ~~,xxxxxx                 ~~~          ~~~~~xxx~~           xx   ~~,xxxxx     ~~           ~~~ xx         ~~~xxx~~~~       xxxxx  ~~,xxxxx    ~~~~           ~~~xxx            xx   xxx    xxxxx     ,xxxx     ~~~~            ~ xxxx           xx  xxxxx  xxxx       ,xxx      ~~~~              xxxxx           xxxxxxxxx  x         ,xx        ~~~            xxxxxxx            xxxxxxxx            ,xx        ~~~           xxxxxx              xxxxxxx            ~,xx         ~~          xxx                    xxx              ~,xx         ~~          xx                                       ,xx                    xx                                        ,xxx                  xx           xxxxx                     xx  ,xxx       xx        xxx~~       xxxxxxxx                   xxx  ,xxxx    xxxxxx     xxxx~~       xxxxxxx                    xxx  ,xxxx   xxxxxxxx   xxxxx~~       xxxxxx                     xxx  ,xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx                       xx   ,xxxxxxxxxxx  xxxxxxxxxxxxxxxxxxx                           xx   ,xxxxxxxxx    xxxxxxxxxxxxxxxxxx                                 ,xxxxxxx~      xxxxxxxxxxxxxxxx                                  ,xxxxxx~              xxx                                        ,xxxxx~                                                x        x,xxxxx~                                                x         ,xxxxxx                                         ~       x        ,xxxxx         ~                                ~~      xx       ,xx          ~~~~                                ~~      xx      ,xx         ~~~~~                                ~~~     xxx     ,xx          ~~~~                  x              ~~~     xxx    ,xxx         ~~~~                xxx               ~~~~    xx    ,xxx          ~~~                x            xx     ~~    xxx   ,xxx          ~~~                             xx           xxxx  ,xx            ~~                             xx           xxxxxx,xx          x ~~                             xx           xxxxxx,xxx       xxx ~~                             xx           xxxxxx,xxxxxxxxxxx   ~~                             xx           xxxxxx";
-  // const terrain = new real.Room.Terrain(data);
-
-  // const join = (row) => _.join(row, ``);
-  // console.log(`|${_.join(_.map(terrain.array, join), `|\n|`)}|`);
-
-  // const Game = { rooms: { W0N0: { terrain } } };
-  // const pf = new PathFinder();
-  // const origin = new RoomPosition(13, 3, `W0N0`);
-  // // const goal = new RoomPosition(35, 13, `W0N0`);
-  // const goal = new RoomPosition(13, 3, `W0N0`);
-  // // const goal = new RoomPosition(35, 2, `W0N0`);
-  // const start = new Date();
-  // const route = pf.search(origin, goal);
-  // console.log(route);
-  // console.log(new Date() - start);
 }
 module.exports.create = create;
 
