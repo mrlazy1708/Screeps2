@@ -8,7 +8,7 @@ The main purpose of **Screeps2** is to rewrite the whole game engine, server and
 
 For a detailed introduction to the game, please refer to the [Screeps2 wiki](https://github.com/mrlazy1708/Screeps2/wiki).
 
-
+<br />
 
 ## Installation
 
@@ -21,7 +21,7 @@ Prerequisites:
 git clone https://github.com/mrlazy1708/Screeps2.git
 ```
 
-
+<br />
 
 ## Server Launch
 
@@ -40,13 +40,11 @@ The server is expected to running in the background. Go to [localhost](http://12
 
 Use a `EOF` signal (Ctrl + D or Ctrl + C twice) to exit the node [REPL](https://nodejs.org/api/repl.html) environment locally, and the server will close the engine, then close all http connections and finally exit properly. 
 
-
-
 **GUI Server**
 
 Only console launcher is supported now. GUI server development is scheduled.
 
-
+<br />
 
 ## Future Plan
 
@@ -69,7 +67,7 @@ Only console launcher is supported now. GUI server development is scheduled.
 - [ ] Login system
 - [x] Wiki
 
-
+<br />
 
 ## Credits
 
@@ -77,11 +75,10 @@ The game **engine**, http **server** and **wiki** (and this README) is written b
 
 The web-based **client** (including GUI) is written by [RuichengWang](https://github.com/wrc042).
 
-
+<br />
 
 ## License
 
 This is a nonprofit project. It's intended only for studying and entertaining purpose and we don't wish to violate the original game's [Term of Service](https://docs.screeps.com/tos.html).
 
 If there's anything that we did violates the *tos*, please contact me by making an issue.
-

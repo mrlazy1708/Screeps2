@@ -61,10 +61,7 @@ console.log1 = console.log;
 console.log = () => {};
 
 const sockets = new Set();
-server.on(`connection`, (socket) => {
-  sockets.add(socket);
-  server.once(`close`, () => sockets.delete(socket));
-});
+server.on(`connection`, (socket) => sockets.add(socket));
 
 const local = repl.start();
 local.on(`exit`, () =>
