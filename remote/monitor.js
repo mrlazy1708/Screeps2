@@ -1,12 +1,12 @@
 function upLowDivlineMove(event) {
   let mouseDown = true;
   const divline = document.querySelector("#up-low-divline");
-  const upBox = document.querySelector(".upper-monitor");
-  const lowBox = document.querySelector(".lower-monitor");
+  const upBox = document.querySelector("#upper-monitor");
+  const lowBox = document.querySelector("#lower-monitor");
   window.onmouseup = () => (mouseDown = false);
   window.onmousemove = function (event) {
     if (mouseDown) {
-      const boxY = Math.max(event.pageY, window.outerHeight * 0.6);
+      const boxY = Math.min(Math.max(event.pageY, window.outerHeight * 0.6),window.outerHeight*0.7);
       divline.style.top = `${(100 * boxY) / window.innerHeight}%`;
       upBox.style.height = `${(100 * boxY) / window.innerHeight}%`;
       lowBox.style.height = `${100 * (1 - boxY / window.innerHeight)}%`;
@@ -25,10 +25,10 @@ function clamp(upBox, canvas) {
   canvas.style.top = `${Math.max(Math.min(canvasY, upperY), lowerY)}px`;
 }
 
-function pixiCanvasMove(event) {
+function twoCanvasMove(event) {
   let mouseDown = true;
-  const upBox = document.querySelector(".upper-left-monitor");
-  const canvas = document.querySelector(".pixi-canvas");
+  const upBox = document.querySelector("#upper-left-monitor");
+  const canvas = document.querySelector("#two-canvas");
   const [mouseX0, mouseY0] = [event.pageX, event.pageY],
     [canvasX0, canvasY0] = [canvas.offsetLeft, canvas.offsetTop];
   window.onmouseup = function () {
@@ -43,9 +43,9 @@ function pixiCanvasMove(event) {
   };
 }
 
-function pixiCanvasZoom(event) {
-  const upBox = document.querySelector(".upper-left-monitor");
-  const canvas = document.querySelector(".pixi-canvas");
+function twoCanvasZoom(event) {
+  const upBox = document.querySelector("#upper-left-monitor");
+  const canvas = document.querySelector("#two-canvas");
   const [mouseX, mouseY] = [event.pageX, event.pageY],
     ratioX = (mouseX - canvas.offsetLeft) / canvas.offsetWidth,
     ratioY = (mouseY - canvas.offsetTop) / canvas.offsetHeight;
@@ -59,7 +59,7 @@ function pixiCanvasZoom(event) {
 }
 
 function consoleInput(element,event){
-  const output=document.querySelector(".console-ouput");
+  const output=document.querySelector("#console-ouput");
   if(event.keyCode===13){
     console.log(element.value);
     output.innerHTML+=`${element.value.slice(2)}\<br\>`

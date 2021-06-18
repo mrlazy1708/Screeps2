@@ -1,196 +1,126 @@
-const { Application, Container, Graphics, TextStyle, Text } = PIXI;
-
-const BGD_COLOR = 0x2b2b2b;
-const WALL_COLOR = 0x131313;
-const SWAMP_COLOR = 0x28301d;
-const MARGIN_COLOR = 0x222222;
-const SOURCE_COLOR = 0xf6e07b;
-const CONTROLLER_COLOR = 0x66ccff;
-const CREEP_COLOR = 0xffffff;
-const RESOLUTION = 1;
+const BGD_COLOR = "#2b2b2b";
+const WALL_COLOR = "#131313";
+const SWAMP_COLOR = "#28301d";
+const MARGIN_COLOR = "#222222";
+const SOURCE_COLOR = "#f6e07b";
+const CONTROLLER_COLOR = "#66ccff";
+const CREEP_COLOR = "#ffffff";
 const X_SIZE = 64;
 const Y_SIZE = 64;
-const ORIGIN_RES=1500;
-const BLOCK_SIZE = ORIGIN_RES/X_SIZE;
+const ORIGIN_RES = 1000;
+const BLOCK_SIZE = ORIGIN_RES / X_SIZE;
 const MAP_SIZE_X = BLOCK_SIZE * X_SIZE;
 const MAP_SIZE_Y = BLOCK_SIZE * Y_SIZE;
-const alert_style = new TextStyle({
-  fontFamily: "Consolas",
-  fontSize: 20,
-  fill: "white",
-  fontWeight: "normal",
-});
 
 export class Display {
   constructor() {
-    this.refresh = true;
-
-    this.app = new Application({
-      width: ORIGIN_RES,
+    this.totalRefresh = true;
+    this.canvasElement = document.querySelector("#two-canvas");
+    this.two = new Two({
       height: ORIGIN_RES,
-      resolution: RESOLUTION,
-    });
-    document.querySelector(".pixi-canvas").appendChild(this.app.view);
-
-    this.ticker = this.app.ticker;
+      width: ORIGIN_RES,
+      autostart: true,
+    }).appendTo(this.canvasElement);
 
     this.Terrain = new Object();
-    this.Creep = new Object();
     this.Structure = new Object();
-    this.Terrain.canvas = new Container();
-    this.Creep.canvas = new Container();
-    this.Structure.canvas = new Container();
+    this.Creep = new Object();
 
-    this.app.stage.addChild(this.Terrain.canvas);
-    this.app.stage.addChild(this.Creep.canvas);
-    this.app.stage.addChild(this.Structure.canvas);
+    this.Terrain.group = new Two.Group().addTo(this.two.scene);
+    this.Structure.group = new Two.Group().addTo(this.two.scene);
+    this.Creep.group = new Two.Group().addTo(this.two.scene);
 
-    this.Terrain.background = new Graphics();
-    this.Terrain.canvas.addChild(this.Terrain.background);
-    this.Terrain.list = this.newGrid(this.Terrain.canvas);
-
-    // this.GameText = new Object();
-    // this.GameText.loading_text = new Text("loading...", alert_style);
-    // this.GameText.loading_text.position.set(
-    //   (MAP_SIZE_X - this.GameText.loading_text.width) / 2,
-    //   (MAP_SIZE_Y - this.GameText.loading_text.height) / 2
-    // );
+    this.two.update();
   }
-  newGrid(canvas) {
-    const grid = new Array();
-    for (let i = 0; i != X_SIZE; i++) {
-      const row = new Array();
-      for (let j = 0; j != Y_SIZE; j++) {
-        const block = new Graphics();
-        block.position.set(i * BLOCK_SIZE, j * BLOCK_SIZE);
-        row.push(block);
-        canvas.addChild(block);
-      }
-      grid.push(row);
-    }
-    return grid;
-  }
-  newCenterGrid(canvas) {
-    const grid = new Array();
-    for (let i = 0; i != X_SIZE; i++) {
-      const row = new Array();
-      for (let j = 0; j != Y_SIZE; j++) {
-        const block = new Graphics();
-        block.position.set(
-          i * BLOCK_SIZE + BLOCK_SIZE / 2,
-          j * BLOCK_SIZE + BLOCK_SIZE / 2
-        );
-        row.push(block);
-        canvas.addChild(block);
-      }
-      grid.push(row);
-    }
-    return grid;
-  }
-  refreshSource(info) {
-    let source = new Graphics();
-    source.position.set(
-      info.pos[0] * BLOCK_SIZE + BLOCK_SIZE / 2,
-      info.pos[1] * BLOCK_SIZE + BLOCK_SIZE / 2
-    );
-    source
-      .beginFill(SOURCE_COLOR)
-      .drawRect(
-        -0.475 * BLOCK_SIZE,
-        -0.475 * BLOCK_SIZE,
-        0.95 * BLOCK_SIZE,
-        0.95 * BLOCK_SIZE
-      )
-      .endFill();
-    this.Structure.canvas.addChild(source);
-    info.obj = source;
-  }
-  refreshController(info) {
-    let controller = new Graphics();
-    controller.position.set(
-      info.pos[0] * BLOCK_SIZE + BLOCK_SIZE / 2,
-      info.pos[1] * BLOCK_SIZE + BLOCK_SIZE / 2
-    );
-    controller
-      .beginFill(CONTROLLER_COLOR)
-      .drawCircle(0, 0, 0.5 * BLOCK_SIZE)
-      .endFill();
-    this.Structure.canvas.addChild(controller);
-    info.obj = controller;
+  setScale(ratio) {
+    this.two.scene.scale = ratio;
   }
   refreshTerrain(info) {
-    this.Terrain.background
-      .beginFill(BGD_COLOR)
-      .drawRect(0, 0, MAP_SIZE_X, MAP_SIZE_Y)
-      .endFill();
-
-    let terrain = info.terrain.split(",");
+    const terrain = info.terrain.split(",");
+    let block;
     for (let i = 0; i != X_SIZE; i++) {
       for (let j = 0; j != Y_SIZE; j++) {
-        let color = BGD_COLOR;
-        if (terrain[i][j] === "x") {
-          color = WALL_COLOR;
-        } else if (terrain[i][j] === "~") {
-          color = SWAMP_COLOR;
+        if (terrain[j][i] === "x") {
+          block = new Two.Rectangle(
+            i * BLOCK_SIZE,
+            j * BLOCK_SIZE,
+            BLOCK_SIZE,
+            BLOCK_SIZE
+          );
+          block.fill = WALL_COLOR;
+          block.noStroke();
+          this.Terrain.group.add(block);
+        } else if (terrain[j][i] === "~") {
+          block = new Two.Rectangle(
+            i * BLOCK_SIZE,
+            j * BLOCK_SIZE,
+            BLOCK_SIZE,
+            BLOCK_SIZE
+          );
+          block.fill = SWAMP_COLOR;
+          block.noStroke();
+          this.Terrain.group.add(block);
         }
-        this.Terrain.list[j][i]
-          .beginFill(color)
-          .drawRect(0, 0, BLOCK_SIZE, BLOCK_SIZE, 5)
-          .endFill();
       }
     }
   }
+  refreshSource(info) {
+    let source = new Two.Rectangle(
+      info.pos[0] * BLOCK_SIZE + BLOCK_SIZE / 2 - 0.475 * BLOCK_SIZE,
+      info.pos[1] * BLOCK_SIZE + BLOCK_SIZE / 2 - 0.475 * BLOCK_SIZE,
+      0.95 * BLOCK_SIZE,
+      0.95 * BLOCK_SIZE
+    );
+    source.fill = SOURCE_COLOR;
+    source.noStroke();
+    this.Structure.group.add(source);
+  }
+  refreshController(info) {
+    let controller = new Two.Circle(
+      info.pos[0] * BLOCK_SIZE + BLOCK_SIZE / 2 ,
+      info.pos[1] * BLOCK_SIZE + BLOCK_SIZE / 2 ,
+      0.5 * BLOCK_SIZE
+    );
+    controller.fill = CONTROLLER_COLOR;
+    controller.noStroke();
+    this.Structure.group.add(controller);
+  }
   refreshStructure(info) {
-    this.Structure.info = info.structures;
-    for (let str in this.Structure.info) {
-      switch (this.Structure.info[str].structureType) {
+    for (let str in info.structures) {
+      switch (info.structures[str].structureType) {
         case "Source":
-          this.refreshSource(this.Structure.info[str]);
+          this.refreshSource(info.structures[str]);
           break;
         case "Controller":
-          this.refreshController(this.Structure.info[str]);
+          this.refreshController(info.structures[str]);
           break;
       }
     }
   }
   refreshCreep(info) {
-    this.Creep.info = info.creeps;
     for (let crp in info.creeps) {
-      let creep = new Graphics();
-      creep.position.set(
+      let creep = new Two.Circle(
         info.creeps[crp].pos[0] * BLOCK_SIZE + BLOCK_SIZE / 2,
-        info.creeps[crp].pos[1] * BLOCK_SIZE + BLOCK_SIZE / 2
+        info.creeps[crp].pos[1] * BLOCK_SIZE + BLOCK_SIZE / 2,
+        0.5 * BLOCK_SIZE
       );
-      creep
-        .beginFill(CREEP_COLOR)
-        .drawCircle(0, 0, 0.5 * BLOCK_SIZE)
-        .endFill();
-      creep.info = info.creeps[crp];
-      this.Creep.canvas.addChild(creep);
-      this.Creep.info[crp].canvas = creep;
+      creep.fill=CREEP_COLOR;
+      creep.noStroke();
+      this.Creep.group.add(creep);
     }
-  }
-  frame(info) {
-    for (let crp in info.creeps) {
-      this.Creep.info[crp].canvas.position.set(
-        info.creeps[crp].pos[0] * BLOCK_SIZE + BLOCK_SIZE / 2,
-        info.creeps[crp].pos[1] * BLOCK_SIZE + BLOCK_SIZE / 2
-      );
-    }
-  }
-  setScale(scale){
-    this.app.stage.scale.set(scale,scale);
   }
   display(info) {
-    if (this.refresh === true) {
-      if (info != undefined) {
-        this.refreshTerrain(info);
-        this.refreshStructure(info);
-        this.refreshCreep(info);
-        this.refresh = false;
-      }
+    if (info === undefined) {
+      return;
+    }
+    this.setScale(this.canvasElement.offsetWidth/ORIGIN_RES);
+    if (this.totalRefresh) {
+      this.refreshTerrain(info);
+      this.refreshStructure(info);
+      this.refreshCreep(info);
+      this.totalRefresh = false;
     } else {
-      this.frame(info);
+      // this.refreshCreep(info);
     }
   }
 }
