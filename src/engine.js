@@ -58,7 +58,12 @@ class Engine {
       fs.writeFileSync(`./local/meta.json`, JSON.stringify(this.recover()));
 
       const interval = this.interval - (new Date() - this.startTime);
-      if (this.running) setTimeout(this.runTick.bind(this), interval);
+      if (this.running !== true) {
+        assert(_.isFunction(this.running), `Invalid callback ${this.running}`);
+        console.log1(`Engine closed`);
+        return this.running();
+      }
+      setTimeout(this.runTick.bind(this), interval);
     }
   }
   reset(seed = new Date()) {
@@ -108,9 +113,7 @@ class Engine {
     });
   }
   close(callback) {
-    this.running = false;
-    console.log1(`Engine closed`);
-    return callback();
+    return (this.running = callback);
   }
   recover() {
     const recover = {};
