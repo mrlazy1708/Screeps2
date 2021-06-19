@@ -20,13 +20,18 @@
 // const ret = spawn.spawnCreep([WORK, CARRY, MOVE], Game.time);
 
 _.forEach(Game.spawns, (spawn) => {
-  if (_.keys(Game.creeps).length <= 10) {
+  if (_.keys(Game.creeps).length <= 2) {
     const ret = spawn.spawnCreep([WORK, CARRY, MOVE], Math.random().toString());
     console.log1(spawn.name, spawn.store.getUsed(RESOURCE_ENERGY), ret);
   } else console.log1(`Over populated creeps!`);
 });
 _.forEach(Game.creeps, (creep) => {
-  console.log1(creep.name, creep.pos, creep.spawning);
+  console.log1(
+    creep.name,
+    creep.pos,
+    creep.spawning,
+    creep.store ? creep.store.getUsed(RESOURCE_ENERGY) : null
+  );
 
   if (creep.spawning) return;
 

@@ -558,8 +558,13 @@ function create(context, engine, player) {
         [TERRAIN_WALL]: opts.wallCost || MOVE_COST[TERRAIN_WALL],
       };
       const defaultCallback = (roomName) => {
-        const terrain = context.Game.rooms[roomName].terrain;
-        return _.map(_.flatten(terrain.data), (sym) => this.moveCost[sym]);
+        const room = context.Game.rooms[roomName],
+          terrain = room.terrain,
+          cost = _.map(_.flatten(terrain.data), (sym) => this.moveCost[sym]),
+          set = (object) => (cost[+object.pos] = Infinity);
+        _.forEach(room.find(FIND_CREEPS), set);
+        _.forEach(room.find(FIND_STRUCTURES), set);
+        return cost;
       };
       this.roomCallback = (roomName) => {
         const rooms = context.Game.rooms;
