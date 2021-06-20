@@ -33,10 +33,6 @@ function create(context, engine, player) {
    *
    */
   class Game {
-    reduce() {
-      delete Game.prototype.recover;
-      delete Game.prototype.reduce;
-    }
     constructor() {
       this.time = engine.Game.time;
 
@@ -75,11 +71,19 @@ function create(context, engine, player) {
         structures = this.structures;
       return creeps[id] || structures[id];
     }
+
+    /** INTERNAL */
     recover() {
       const recover = {};
       recover.time = this.time;
       recover.rooms = _.mapValues(this.rooms, (room) => room.recover());
       return recover;
+    }
+
+    /** INTERNAL */
+    static reduce() {
+      delete Game.prototype.recover;
+      delete Game.prototype.reduce;
     }
   }
 
@@ -91,7 +95,8 @@ function create(context, engine, player) {
    *
    */
   class Memory {
-    reduce() {
+    /** INTERNAL */
+    static reduce() {
       delete Memory.prototype.reduce;
     }
   }
@@ -106,14 +111,24 @@ function create(context, engine, player) {
    *
    */
   class Room {
-    static reduce() {
-      delete Room.prototype.new;
-      delete Room.prototype.update;
-      delete Room.prototype.array;
-      delete Room.prototype.print;
-      delete Room.prototype.recover;
-      delete Room.prototype.reduce;
+    constructor(data, name) {
+      this.name = name;
+
+      this.terrain = new RoomTerrain(data.terrain);
+
+      this.creeps = _.mapValues(
+        data.creeps,
+        (creep, name) => new Creep(creep, name, this)
+      );
+      _creeps.set(this.name, this.creeps);
+
+      this.structures = _.mapValues(data.structures, (structure, id) =>
+        Structure.new(structure, id, this)
+      );
+      _structures.set(this.name, this.structures);
     }
+
+    /** INTERNAL */
     static new(X, Y, walls, swamps) {
       const name = RoomPosition.prototype.setXY(X, Y);
 
@@ -140,24 +155,8 @@ function create(context, engine, player) {
       engine.Game.rooms[name] = room;
       return room;
     }
-    constructor(data, name) {
-      this.name = name;
 
-      this.terrain = new RoomTerrain(data.terrain);
-
-      this.creeps = _.mapValues(
-        data.creeps,
-        (creep, name) => new Creep(creep, name, this)
-      );
-      _creeps.set(this.name, this.creeps);
-
-      this.structures = _.mapValues(data.structures, (structure, id) =>
-        Structure.new(structure, id, this)
-      );
-      _structures.set(this.name, this.structures);
-    }
-
-    /** update room stats */
+    /** INTERNAL */
     update() {}
 
     /**
@@ -267,7 +266,7 @@ function create(context, engine, player) {
       // if (type === FIND_RUINS)
     }
 
-    /** get room terrain and objects in ASCII Array */
+    /** INTERNAL */
     array() {
       const array = this.terrain.array(),
         draw = (object) => {
@@ -280,13 +279,13 @@ function create(context, engine, player) {
       return array;
     }
 
-    /** get room terrain and objects in String */
+    /** INTERNAL */
     print() {
       const join = (row) => _.join(row, ``);
       return `|${_.join(_.map(this.array(), join), `|\n|`)}|`;
     }
 
-    /** get recovering data */
+    /** INTERNAL */
     recover() {
       const recover = {};
       recover.terrain = this.terrain.recover();
@@ -295,6 +294,16 @@ function create(context, engine, player) {
         structure.recover()
       );
       return recover;
+    }
+
+    /** INTERNAL */
+    static reduce() {
+      delete Room.prototype.new;
+      delete Room.prototype.update;
+      delete Room.prototype.array;
+      delete Room.prototype.print;
+      delete Room.prototype.recover;
+      delete Room.prototype.reduce;
     }
   }
 
@@ -307,10 +316,6 @@ function create(context, engine, player) {
    *
    */
   class RoomPosition {
-    static reduce() {
-      delete RoomPosition.prototype.recover;
-      delete RoomPosition.prototype.reduce;
-    }
     constructor(x, y, roomName) {
       assert(!_.isUndefined(x) && !_.isNull(x), `Invalid arguments!`);
       if (_.isString(x.roomName))
@@ -409,7 +414,11 @@ function create(context, engine, player) {
       (this.x += dx), (this.y += dy);
       return this;
     }
-    /** clamp RoomPosition over boundaries */
+
+    /**
+     * Clamp RoomPosition over boundaries.
+     *
+     */
     clamp(minX = 0, minY = 0, maxX = ROOM_WIDTH - 1, maxY = ROOM_HEIGHT - 1) {
       if (this.x <= minX) {
         const X = this.getX() - 1;
@@ -431,7 +440,21 @@ function create(context, engine, player) {
       }
       return this;
     }
-    /** get range to another RoomPosition */
+
+    /**
+     * Get linear range to the specified position.
+     *
+     * @param {RoomPosition} pos Can be a RoomPosition object or any object containing RoomPosition.
+     *
+     * @return {number} The number of squares to the given position.
+     *
+     * @example
+     * const range = creep.pos.getRangeTo(target);
+     * if(range <= 3) {
+     *     creep.rangedAttack(target);
+     * }
+     *
+     */
     getRangeTo(pos) {
       assert(!_.isUndefined(pos) && !_.isNull(pos), `Invalid pos ${pos}!`);
       if (!(pos instanceof RoomPosition)) pos = pos.pos;
@@ -442,10 +465,17 @@ function create(context, engine, player) {
         Math.abs(tY * ROOM_HEIGHT + this.y - (pY * ROOM_HEIGHT + pos.y))
       );
     }
-    /** get recovering data */
+
+    /** INTERNAL */
     recover() {
       const recover = [this.x, this.y];
       return recover;
+    }
+
+    /** INTERNAL */
+    static reduce() {
+      delete RoomPosition.prototype.recover;
+      delete RoomPosition.prototype.reduce;
     }
   }
 
@@ -454,15 +484,11 @@ function create(context, engine, player) {
    *
    */
   class RoomTerrain {
-    static reduce() {
-      delete RoomTerrain.prototype.compress;
-      delete RoomTerrain.prototype.decompress;
-      delete RoomTerrain.prototype.array;
-      delete RoomTerrain.prototype.print;
-      delete RoomTerrain.prototype.recover;
-      delete RoomTerrain.prototype.reduce;
+    constructor(terrain) {
+      this.data = terrain.data || RoomTerrain.decompress(terrain);
     }
-    /** Stringify terrain data to compact string. */
+
+    /** INTERNAL */
     static compress(data, sep = `,`) {
       return _.join(
         _.map(data, (row) => _.join(_.map(row, utils.symbol), ``)),
@@ -470,15 +496,11 @@ function create(context, engine, player) {
       );
     }
 
-    /** Parse compressed terrain data. */
+    /** INTERNAL */
     static decompress(data, sep = `,`) {
       return _.map(_.split(data, sep), (row) =>
         _.map(_.split(row, ``), utils.meaning)
       );
-    }
-
-    constructor(terrain) {
-      this.data = terrain.data || RoomTerrain.decompress(terrain);
     }
 
     /**
@@ -498,21 +520,31 @@ function create(context, engine, player) {
       return this.data[y][x];
     }
 
-    /** get terrain in ASCII Array */
+    /** INTERNAL */
     array() {
       return _.map(this.data, (row) => _.map(row, utils.symbol));
     }
 
-    /** get terrain in String */
+    /** INTERNAL */
     print() {
       const join = (row) => _.join(row, ``);
       return `|${_.join(_.map(this.array(), join), `|\n|`)}|`;
     }
 
-    /** get recovering data */
+    /** INTERNAL */
     recover() {
       const recover = RoomTerrain.compress(this.data);
       return recover;
+    }
+
+    /** INTERNAL */
+    static reduce() {
+      delete RoomTerrain.prototype.compress;
+      delete RoomTerrain.prototype.decompress;
+      delete RoomTerrain.prototype.array;
+      delete RoomTerrain.prototype.print;
+      delete RoomTerrain.prototype.recover;
+      delete RoomTerrain.prototype.reduce;
     }
   }
 
@@ -528,9 +560,6 @@ function create(context, engine, player) {
    *
    */
   class PathFinder {
-    static reduce() {
-      delete PathFinder.prototype.reduce;
-    }
     /**
      * Constructor for PathFinder.
      *
@@ -666,6 +695,11 @@ function create(context, engine, player) {
       const incomplete = range > 0;
       return reconstruct(nearest, { ops, cost, incomplete });
     }
+
+    /** INTERNAL */
+    static reduce() {
+      delete PathFinder.prototype.reduce;
+    }
   }
 
   /**
@@ -674,12 +708,6 @@ function create(context, engine, player) {
    *
    */
   class RoomObject {
-    static reduce() {
-      delete RoomObject.prototype.update;
-      delete RoomObject.prototype.remove;
-      delete RoomObject.prototype.recover;
-      delete RoomObject.prototype.reduce;
-    }
     constructor(data, id, room) {
       Object.defineProperty(this, `id`, {
         configurable: false,
@@ -699,7 +727,7 @@ function create(context, engine, player) {
       this.hitsMax = data.hitsMax;
     }
 
-    /** update scheduled action */
+    /** INTERNAL */
     update() {
       if (!engine.scheduleMap.has(this.id)) return;
       const [action, args] = engine.scheduleMap.get(this.id);
@@ -718,16 +746,24 @@ function create(context, engine, player) {
       return ret;
     }
 
-    /** remove roomObject */
+    /** INTERNAL */
     remove() {}
 
-    /** get recovering data */
+    /** INTERNAL */
     recover() {
       const recover = {};
       recover.pos = this.pos.recover();
       recover.hits = this.hits;
       recover.hitsMax = this.hitsMax;
       return recover;
+    }
+
+    /** INTERNAL */
+    static reduce() {
+      delete RoomObject.prototype.update;
+      delete RoomObject.prototype.remove;
+      delete RoomObject.prototype.recover;
+      delete RoomObject.prototype.reduce;
     }
   }
 
@@ -737,14 +773,6 @@ function create(context, engine, player) {
    *
    */
   class Store {
-    static reduce() {
-      delete Store.prototype.setCapacity;
-      delete Store.prototype.addCapacity;
-      delete Store.prototype.setUsed;
-      delete Store.prototype.addUsed;
-      delete Store.prototype.recover;
-      delete Store.prototype.reduce;
-    }
     constructor(data, limit, capacity) {
       this.store = data.store || data;
       this.limit = data.limit || limit;
@@ -758,12 +786,12 @@ function create(context, engine, player) {
       return 0;
     }
 
-    /** set capacity */
+    /** INTERNAL */
     setCapacity(amount) {
       return (this.capacity = amount);
     }
 
-    /** add capacity */
+    /** INTERNAL */
     addCapacity(amount) {
       return this.setCapacity(this.getCapacity() + amount);
     }
@@ -774,12 +802,12 @@ function create(context, engine, player) {
       return _.sum(_.values(this.store));
     }
 
-    /** set used amount for certain type of resources */
+    /** INTERNAL */
     setUsed(type, amount) {
       return (this.store[type] = amount);
     }
 
-    /** add used amount for certain type of resources */
+    /** INTERNAL */
     addUsed(type, amount) {
       return this.setUsed(type, this.getUsed(type) + amount);
     }
@@ -789,10 +817,20 @@ function create(context, engine, player) {
       return this.getCapacity(type) - this.getUsed(type);
     }
 
-    /** get recovering data */
+    /** INTERNAL */
     recover() {
       const recover = this.store;
       return recover;
+    }
+
+    /** INTERNAL */
+    static reduce() {
+      delete Store.prototype.setCapacity;
+      delete Store.prototype.addCapacity;
+      delete Store.prototype.setUsed;
+      delete Store.prototype.addUsed;
+      delete Store.prototype.recover;
+      delete Store.prototype.reduce;
     }
   }
 
@@ -802,27 +840,6 @@ function create(context, engine, player) {
    *
    */
   class Creep extends RoomObject {
-    static reduce() {
-      delete Creep.prototype.new;
-      delete Creep.prototype.update;
-      delete Creep.prototype.remove;
-      delete Creep.prototype.recover;
-      delete Creep.prototype.reduce;
-    }
-    static new(room, spawn_, name, directions, body, owner) {
-      const id = engine.RNG.randhex(),
-        pos = spawn_.pos,
-        hitsMax = body.length * CREEP_BODYPART_HITS,
-        hits = hitsMax,
-        spawning = true,
-        remainingTime = body.length * CREEP_SPAWN_TIME,
-        spawn = spawn_.name,
-        // prettier-ignore
-        creep = new Creep({ pos, hits, hitsMax, id, body, owner, spawning,
-          directions, remainingTime, spawn}, name, room);
-      addCreep(room, creep);
-      return creep;
-    }
     constructor(data, name, room) {
       super(data, data.id, room);
       this.name = name;
@@ -847,7 +864,23 @@ function create(context, engine, player) {
       }
     }
 
-    /** update creep state */
+    /** INTERNAL */
+    static new(room, spawn_, name, directions, body, owner) {
+      const id = engine.RNG.randhex(),
+        pos = spawn_.pos,
+        hitsMax = body.length * CREEP_BODYPART_HITS,
+        hits = hitsMax,
+        spawning = true,
+        remainingTime = body.length * CREEP_SPAWN_TIME,
+        spawn = spawn_.name,
+        // prettier-ignore
+        creep = new Creep({ pos, hits, hitsMax, id, body, owner, spawning,
+              directions, remainingTime, spawn}, name, room);
+      addCreep(room, creep);
+      return creep;
+    }
+
+    /** INTERNAL */
     update() {
       super.update(...arguments);
 
@@ -1089,7 +1122,7 @@ function create(context, engine, player) {
       return OK;
     }
 
-    /** get recovering data */
+    /** INTERNAL */
     recover() {
       const recover = super.recover();
       recover.id = this.id;
@@ -1107,47 +1140,66 @@ function create(context, engine, player) {
       }
       return recover;
     }
+
+    /** INTERNAL */
+    static reduce() {
+      delete Creep.prototype.new;
+      delete Creep.prototype.update;
+      delete Creep.prototype.remove;
+      delete Creep.prototype.recover;
+      delete Creep.prototype.reduce;
+    }
   }
 
   /** Structure class defination inherited from RoomObjects */
   class Structure extends RoomObject {
-    static reduce() {
-      delete Structure.prototype.new;
-      delete Structure.prototype.update;
-      delete Structure.prototype.recover;
-      delete Structure.prototype.reduce;
-    }
-    static new(data, ...args) {
-      const constructor = context[`Structure${data.structureType}`];
-      return new constructor(data, ...args);
-    }
-    /** constructor for Structure */
     constructor(data) {
       super(...arguments);
 
       this.structureType = data.structureType;
       this.walkable = _.includes(WALKABLE_OBJECT_TYPES, this.structureType);
     }
-    /** update structure state */
+
+    /** INTERNAL */
+    static new(data, ...args) {
+      const constructor = context[`Structure${data.structureType}`];
+      return new constructor(data, ...args);
+    }
+
+    /** INTERNAL */
     update() {
       super.update(...arguments);
     }
-    /** get recovering data */
+
+    /** INTERNAL */
     recover() {
       const recover = super.recover();
       recover.structureType = this.structureType;
       return recover;
     }
+
+    /** INTERNAL */
+    static reduce() {
+      delete Structure.prototype.new;
+      delete Structure.prototype.update;
+      delete Structure.prototype.recover;
+      delete Structure.prototype.reduce;
+    }
   }
 
   /** StructureController class defination inherited from Structure */
   class StructureController extends Structure {
-    static reduce() {
-      delete StructureController.prototype.new;
-      delete StructureController.prototype.update;
-      delete StructureController.prototype.recover;
-      delete StructureController.prototype.reduce;
+    constructor(data, _id, room) {
+      super(...arguments);
+
+      this.level = data.level;
+      this.progress = data.progress;
+      this.progressTotal = CONTROLLER_LEVELS[this.level];
+
+      room.controller = this;
     }
+
+    /** INTERNAL */
     static new(room, pos) {
       if (_.isUndefined(pos)) return null;
       const under = room.at(...pos);
@@ -1162,16 +1214,8 @@ function create(context, engine, player) {
       addStructure(room, controller);
       return controller;
     }
-    constructor(data, _id, room) {
-      super(...arguments);
 
-      this.level = data.level;
-      this.progress = data.progress;
-      this.progressTotal = CONTROLLER_LEVELS[this.level];
-
-      room.controller = this;
-    }
-    /** update state */
+    /** INTERNAL */
     update() {
       super.update(...arguments);
 
@@ -1180,7 +1224,8 @@ function create(context, engine, player) {
         this.progressTotal = CONTROLLER_LEVELS[++this.level];
       }
     }
-    /** get recovering data */
+
+    /** INTERNAL */
     recover() {
       const recover = super.recover();
       recover.level = this.level;
@@ -1188,16 +1233,26 @@ function create(context, engine, player) {
       recover.progressTotal = this.progressTotal;
       return recover;
     }
+
+    /** INTERNAL */
+    static reduce() {
+      delete StructureController.prototype.new;
+      delete StructureController.prototype.update;
+      delete StructureController.prototype.recover;
+      delete StructureController.prototype.reduce;
+    }
   }
 
   /** StructureSource class defination inherited from Structure */
   class StructureSource extends Structure {
-    static reduce() {
-      delete StructureSource.prototype.new;
-      delete StructureSource.prototype.update;
-      delete StructureSource.prototype.recover;
-      delete StructureSource.prototype.reduce;
+    constructor(data) {
+      super(...arguments);
+
+      this.ticksToRegeneration = data.ticksToRegeneration;
+      this.store = new Store(data.store, [RESOURCE_ENERGY], SOURCE_CAPACITY);
     }
+
+    /** INTERNAL */
     static new(room, pos) {
       if (_.isUndefined(pos)) return null;
       const under = room.at(...pos);
@@ -1211,14 +1266,8 @@ function create(context, engine, player) {
       addStructure(room, source);
       return source;
     }
-    /** constructor for StructureSource */
-    constructor(data) {
-      super(...arguments);
 
-      this.ticksToRegeneration = data.ticksToRegeneration;
-      this.store = new Store(data.store, [RESOURCE_ENERGY], SOURCE_CAPACITY);
-    }
-    /** update state */
+    /** INTERNAL */
     update() {
       super.update(...arguments);
 
@@ -1227,49 +1276,78 @@ function create(context, engine, player) {
         this.store.setUsed(RESOURCE_ENERGY, SOURCE_CAPACITY);
       }
     }
-    /** get recovering data */
+
+    /** INTERNAL */
     recover() {
       const recover = super.recover();
       recover.store = this.store.recover();
       recover.ticksToRegeneration = this.ticksToRegeneration;
       return recover;
     }
+
+    /** INTERNAL */
+    static reduce() {
+      delete StructureSource.prototype.new;
+      delete StructureSource.prototype.update;
+      delete StructureSource.prototype.recover;
+      delete StructureSource.prototype.reduce;
+    }
   }
 
   /** OwnedStructure class defination inherited from Structure */
   class OwnedStructure extends Structure {
-    static reduce() {
-      delete OwnedStructure.prototype.reduce;
-      delete OwnedStructure.prototype.recover;
-    }
-    /** constructor for OwnedStructure */
     constructor(data) {
       super(...arguments);
 
       this.owner = data.owner;
       this.my = this.owner === player.name || player.god;
     }
-    /** get Memory.structures[id] */
+
+    /**
+     * A shorthand to Memory.structures[structure.id].
+     * You can use it for quick access the **Structure**’s specific memory data object.
+     *
+     * @returns {Memory} Memory.structures[this.id]
+     *
+     * @example
+     * spawn.memory.queue = [];
+     *
+     */
     get memory() {
       const structures = (context.Memory.structures =
         context.Memory.structures || {});
       return (structures[this.id] = structures[this.id] || {});
     }
-    /** get recovering data */
+
+    /** INTERNAL */
     recover() {
       const recover = super.recover();
       recover.owner = this.owner;
       return recover;
     }
+
+    /** INTERNAL */
+    static reduce() {
+      delete OwnedStructure.prototype.reduce;
+      delete OwnedStructure.prototype.recover;
+    }
   }
 
   /** StructureSpawn class defination inherited from OwnedStructure */
   class StructureSpawn extends OwnedStructure {
-    static reduce() {
-      delete StructureSpawn.prototype.update;
-      delete StructureSpawn.prototype.recover;
-      delete StructureSpawn.prototype.reduce;
+    constructor(data) {
+      super(...arguments);
+
+      this.name = data.name;
+      this.spawning = data.spawning;
+      this.store = new Store(
+        data.store,
+        [RESOURCE_ENERGY],
+        SPAWN_ENERGY_CAPACITY
+      );
     }
+
+    /** INTERNAL */
     static new(room, pos, name, owner) {
       if (_.isUndefined(pos)) return null;
       const under = room.at(...pos);
@@ -1287,19 +1365,8 @@ function create(context, engine, player) {
       addStructure(room, spawn);
       return spawn;
     }
-    /** constructor for StructureSpawn */
-    constructor(data) {
-      super(...arguments);
 
-      this.name = data.name;
-      this.spawning = data.spawning;
-      this.store = new Store(
-        data.store,
-        [RESOURCE_ENERGY],
-        SPAWN_ENERGY_CAPACITY
-      );
-    }
-    /** update state */
+    /** INTERNAL */
     update() {
       super.update(...arguments);
 
@@ -1307,7 +1374,24 @@ function create(context, engine, player) {
       if (this.store.getUsed(RESOURCE_ENERGY) >= SPAWN_ENERGY_CAPACITY)
         this.store.setUsed(RESOURCE_ENERGY, SPAWN_ENERGY_CAPACITY);
     }
-    /** spawnCreep */
+
+    /**
+     * Start the creep spawning process.
+     * The required energy amount can be withdrawn from all spawns and extensions in the room.
+     *
+     * @param {[string]} body An array describing the new creep’s body. Should contain 1 to 50 elements with one of these constants:\
+     * WORK, MOVE, CARRY, ATTACK, RANGED_ATTACK, HEAL, TOUGH, CLAIM
+     *
+     * @param {string} name The name of a new creep.
+     * The name length limit is 100 characters.
+     * It must be a unique creep name, i.e. the Game.creeps object should not contain another creep with the same name (hash key).
+     *
+     * @returns {string} OK or ERR codes.
+     *
+     * @example
+     * Game.spawns['Spawn1'].spawnCreep([WORK, CARRY, MOVE], 'Worker1');
+     *
+     */
     spawnCreep(body, name, opts = {}) {
       if (!this.my) return ERR_NOT_OWNER;
       if (!_.isArray(body)) return ERR_INVALID_ARGS;
@@ -1328,13 +1412,21 @@ function create(context, engine, player) {
       }
       return OK;
     }
-    /** get recovering data */
+
+    /** INTERNAL */
     recover() {
       const recover = super.recover();
       recover.name = this.name;
       recover.spawning = this.spawning;
       recover.store = this.store.recover();
       return recover;
+    }
+
+    /** INTERNAL */
+    static reduce() {
+      delete StructureSpawn.prototype.update;
+      delete StructureSpawn.prototype.recover;
+      delete StructureSpawn.prototype.reduce;
     }
   }
 
@@ -1362,8 +1454,9 @@ function create(context, engine, player) {
 module.exports.create = create;
 
 function reduce(context, engine, player) {
-  context.Game.reduce();
-  context.Memory.reduce();
+  context.Game.constructor.reduce();
+  context.Memory.constructor.reduce();
+
   context.Room.reduce();
   context.RoomPosition.reduce();
   context.RoomTerrain.reduce();
