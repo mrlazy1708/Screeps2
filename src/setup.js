@@ -116,6 +116,11 @@ function create(context, engine, player) {
 
       this.terrain = new RoomTerrain(data.terrain);
 
+      this.energyAvailable = 0;
+      this.energyCapacity = 0;
+
+      this.controller = null;
+
       this.creeps = _.mapValues(
         data.creeps,
         (creep, name) => new Creep(creep, name, this)
@@ -733,7 +738,10 @@ function create(context, engine, player) {
       const [action, args] = engine.scheduleMap.get(this.id);
       assert(_.isFunction(this[action]), `Invalid action ${action}`);
       const ret = this[action](...args);
-      if (ret !== OK) console.log1(`Conflict detected (${ret}) !`);
+      if (ret !== OK) {
+        console.log1(`Conflict detected!`);
+        console.log1(`${this.id} ${action} [${args}] returns ${ret}`);
+      }
 
       this.pos = this.pos.clamp();
       if (this.room.name != this.pos.roomName) {
@@ -908,6 +916,7 @@ function create(context, engine, player) {
               this.getActiveBodyparts(CARRY) * CARRY_CAPACITY
             );
             this.spawning = false;
+            context.Game.spawns[this.spawn].spawning = null;
           }
         }
       } else {
@@ -1345,6 +1354,9 @@ function create(context, engine, player) {
         [RESOURCE_ENERGY],
         SPAWN_ENERGY_CAPACITY
       );
+
+      this.room.energyAvailable += this.store.getUsed(RESOURCE_ENERGY);
+      this.room.energyCapacity += this.store.getCapacity(RESOURCE_ENERGY);
     }
 
     /** INTERNAL */
@@ -1401,9 +1413,27 @@ function create(context, engine, player) {
       if (!_.isString(name)) return ERR_INVALID_ARGS;
       if (!_.isUndefined(context.Game.creeps[name])) return ERR_NAME_EXISTS;
       if (!_.isObject(opts)) return ERR_INVALID_ARGS;
+      if (_.isString(this.spawning)) return ERR_NOT_AVAILABLE;
+      let energyRequired = _.sum(
+        _.map(body, (bodypart) => CREEP_BODYPART_COST[bodypart])
+      );
+      if (energyRequired > this.room.energyAvailable)
+        return ERR_NOT_ENOUGH_RESOURCES;
       const directions = opts.directions || utils.dirs;
       if (_.isEmpty(directions)) return ERR_NO_PATH;
       if (player.god) {
+        const drain = (object) => {
+          if (energyRequired > 0 && object instanceof StructureSpawn) {
+            if (object.store.getUsed(RESOURCE_ENERGY) >= energyRequired)
+              object.store.addUsed(RESOURCE_ENERGY, -energyRequired);
+            else {
+              energyRequired -= object.store.getUsed(RESOURCE_ENERGY);
+            }
+          }
+        };
+        drain(this); // Always drain energy from spawn forst
+        _.forEach(_structures.get(this.room.name), drain);
+        this.room.energyAvailable -= energyRequired;
         context.Creep.new(this.room, this, name, directions, body, this.owner);
         this.spawning = name;
       } else {
