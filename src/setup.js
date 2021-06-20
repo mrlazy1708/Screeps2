@@ -7,7 +7,7 @@ const utils = require(`./utils`);
 const Queue = require(`./queue`);
 
 /** construct prototypes for player from engine under context */
-function create(context, engine, player) {
+function create(context, engine, player, core) {
   /** hidden Map for room objects */
   const _creeps = new Map(),
     _structures = new Map();
@@ -699,18 +699,14 @@ function create(context, engine, player) {
       this.hitsMax = data.hitsMax;
     }
 
-    /** schedule player action */
-    schedule(callback) {
-      engine.schedule.set(this.id, callback);
-      return this;
-    }
-
     /** update scheduled action */
     update() {
       if (!engine.schedule.has(this.id)) return;
-      const callback = engine.schedule.get(this.id);
-      assert(_.isFunction(callback), `Invalid action ${callback}!`);
-      const ret = callback.call(this, context, ...arguments);
+      const [action, args] = engine.schedule.get(this.id);
+      assert(_.isFunction(this[action]), `Invalid action ${action}`);
+      const ret = this[action](...args);
+      if (ret !== OK) console.log1(`Instance modification detected (${ret}) !`);
+
       this.pos = this.pos.clamp();
       if (this.room.name != this.pos.roomName) {
         if (this instanceof Creep) deleteCreep(this.room, this);
@@ -833,7 +829,7 @@ function create(context, engine, player) {
 
       this.body = data.body;
       this.owner = data.owner;
-      this.my = this.owner === player.name;
+      this.my = this.owner === player.name || core;
       if ((this.spawning = data.spawning)) {
         this.directions = data.directions;
         this.needTime = this.body.length * CREEP_SPAWN_TIME;
@@ -946,10 +942,12 @@ function create(context, engine, player) {
         objects = pos.look();
       if (_.head(objects) === TERRAIN_WALL) return ERR_NO_PATH;
       if (!_.every(_.tail(objects), `walkable`)) return ERR_NO_PATH;
-      this.schedule(function (context) {
+      if (core) {
         this.head = dir;
         this.pos = new context.RoomPosition(pos);
-      });
+      } else {
+        engine.schedule.set(this.id, [`move`, [dir]]);
+      }
       return OK;
     }
 
@@ -1046,12 +1044,13 @@ function create(context, engine, player) {
         if (amount2 <= 0) return ERR_FULL;
         let amount = this.getActiveBodyparts(WORK) * HARVEST_SOURCE_POWER;
         amount = Math.min(amount, amount1, amount2);
-        this.schedule(function () {
+        if (core) {
           this.store.addUsed(RESOURCE_ENERGY, amount);
-        });
-        target.schedule(function () {
-          this.store.addUsed(RESOURCE_ENERGY, -amount);
-        });
+          target.store.addUsed(RESOURCE_ENERGY, -amount);
+        } else {
+          target = engine.Game.getObjectById(target.id);
+          engine.schedule.set(this.id, [`harvest`, [target]]);
+        }
         return OK;
       }
       return ERR_INVALID_ARGS;
@@ -1080,12 +1079,13 @@ function create(context, engine, player) {
       if (amount1 <= 0) return ERR_NOT_ENOUGH_RESOURCES;
       let amount = this.getActiveBodyparts(WORK) * UPGRADE_CONTROLLER_POWER;
       amount = Math.min(amount, amount1);
-      target.schedule(function () {
-        this.progress += amount;
-      });
-      this.schedule(function () {
+      if (core) {
         this.store.addUsed(RESOURCE_ENERGY, -amount);
-      });
+        target.progress += amount;
+      } else {
+        target = engine.Game.getObjectById(target.id);
+        engine.schedule.set(this.id, [`upgradeController`, [target]]);
+      }
       return OK;
     }
 
@@ -1247,7 +1247,7 @@ function create(context, engine, player) {
       super(...arguments);
 
       this.owner = data.owner;
-      this.my = this.owner === player.name;
+      this.my = this.owner === player.name || core;
     }
     /** get Memory.structures[id] */
     get memory() {
@@ -1319,10 +1319,12 @@ function create(context, engine, player) {
       if (!_.isObject(opts)) return ERR_INVALID_ARGS;
       const directions = opts.directions || utils.dirs;
       if (_.isEmpty(directions)) return ERR_NO_PATH;
-      this.schedule(function (context) {
+      if (core) {
         context.Creep.new(this.room, this, name, directions, body, this.owner);
         this.spawning = name;
-      });
+      } else {
+        engine.schedule.set(this.id, [`spawnCreep`, [body, name, opts]]);
+      }
       return OK;
     }
     /** get recovering data */

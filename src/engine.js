@@ -24,7 +24,7 @@ class Engine {
     this.Game = recover.Game;
 
     const system = { visible: () => true };
-    setup.create(this, this, system);
+    setup.create(this, this, system, true);
 
     console.log(`  Engine started`);
     this.running = true;
@@ -81,7 +81,7 @@ class Engine {
     this.Game = { time: 0, rooms: {} };
 
     const system = { visible: () => true };
-    setup.create(this, this, system);
+    setup.create(this, this, system, true);
 
     const args = [WORLD_WIDTH, WORLD_HEIGHT, ROOM_WIDTH, ROOM_HEIGHT, this.RNG],
       walls = utils.Maze.generate(...args, 0.5, this.RNG.rand() * 0.35),
