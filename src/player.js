@@ -8,7 +8,8 @@ const vm = require(`vm`);
 const setup = require(`./setup`);
 
 class Player {
-  constructor(recover, name) {
+  constructor(engine, recover, name) {
+    this.engine = engine;
     this.name = name;
 
     this.script = fs.readFileSync(
@@ -23,14 +24,14 @@ class Player {
       flag: `a+`,
     });
   }
-  runTick(engine, callback) {
+  runTick(callback) {
     /** create context */
     const context = { JSON, require, console, _ };
     vm.createContext(context);
 
     /** setup lexical environment */
-    setup.create(context, engine, this);
-    setup.reduce(context, engine, this);
+    setup.create(context, this.engine, this);
+    setup.reduce(context, this.engine, this);
 
     /** start timer */
     console.log(`  Running ${this.name}'s code`);
@@ -54,6 +55,9 @@ class Player {
     console.log(`    ${this.name} ran by ${new Date() - startTime}ms`);
 
     callback();
+  }
+  schedule(object, args, own) {
+    return this.engine.schedule(this, object, args, own);
   }
   recover() {
     const recover = {};

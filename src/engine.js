@@ -19,12 +19,12 @@ class Engine {
     this.RNG = new utils.PRNG(...recover.RNG);
     this.players = _.mapValues(
       recover.players,
-      (data, name) => new Player(data, name)
+      (data, name) => new Player(this, data, name)
     );
     this.Game = recover.Game;
 
-    const system = { visible: () => true };
-    setup.create(this, this, system, true);
+    this.system = { visible: () => true, god: true };
+    setup.create(this, this, this.system);
 
     console.log(`  Engine started`);
     this.running = true;
@@ -39,11 +39,17 @@ class Engine {
     console.log(`Engine start running at ${this.Game.time}`);
     this.startTime = new Date();
 
-    this.schedule = new Map();
+    this.scheduleMap = new Map();
     this.ticked = 0;
     _.forEach(this.players, (player) =>
-      setImmediate(player.runTick.bind(player, this, this.endTick.bind(this)))
+      setImmediate(player.runTick.bind(player, this.endTick.bind(this)))
     );
+  }
+  schedule(player, object, args, own) {
+    object = this.Game.getObjectById(object.id);
+    if (_.isNull(object)) return ERR_NOT_OWNER;
+    if (own && player.name != object.owner) return ERR_NOT_OWNER;
+    this.scheduleMap.set(object.id, args);
   }
   endTick() {
     if (++this.ticked === _.keys(this.players).length) {
@@ -76,12 +82,11 @@ class Engine {
     this.interval = 1000;
     this.RNG = utils.PRNG.from(seed);
     this.players = {
-      Alice: new Player({ rcl: 1 }, `Alice`),
+      Alice: new Player(this, { rcl: 1 }, `Alice`),
     };
     this.Game = { time: 0, rooms: {} };
 
-    const system = { visible: () => true };
-    setup.create(this, this, system, true);
+    setup.create(this, this, this.system);
 
     const args = [WORLD_WIDTH, WORLD_HEIGHT, ROOM_WIDTH, ROOM_HEIGHT, this.RNG],
       walls = utils.Maze.generate(...args, 0.5, this.RNG.rand() * 0.35),

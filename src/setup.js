@@ -7,7 +7,7 @@ const utils = require(`./utils`);
 const Queue = require(`./queue`);
 
 /** construct prototypes for player from engine under context */
-function create(context, engine, player, core) {
+function create(context, engine, player) {
   /** hidden Map for room objects */
   const _creeps = new Map(),
     _structures = new Map();
@@ -701,11 +701,11 @@ function create(context, engine, player, core) {
 
     /** update scheduled action */
     update() {
-      if (!engine.schedule.has(this.id)) return;
-      const [action, args] = engine.schedule.get(this.id);
+      if (!engine.scheduleMap.has(this.id)) return;
+      const [action, args] = engine.scheduleMap.get(this.id);
       assert(_.isFunction(this[action]), `Invalid action ${action}`);
       const ret = this[action](...args);
-      if (ret !== OK) console.log1(`Instance modification detected (${ret}) !`);
+      if (ret !== OK) console.log1(`Conflict detected (${ret}) !`);
 
       this.pos = this.pos.clamp();
       if (this.room.name != this.pos.roomName) {
@@ -829,7 +829,7 @@ function create(context, engine, player, core) {
 
       this.body = data.body;
       this.owner = data.owner;
-      this.my = this.owner === player.name || core;
+      this.my = this.owner === player.name || player.god;
       if ((this.spawning = data.spawning)) {
         this.directions = data.directions;
         this.needTime = this.body.length * CREEP_SPAWN_TIME;
@@ -942,11 +942,11 @@ function create(context, engine, player, core) {
         objects = pos.look();
       if (_.head(objects) === TERRAIN_WALL) return ERR_NO_PATH;
       if (!_.every(_.tail(objects), `walkable`)) return ERR_NO_PATH;
-      if (core) {
+      if (player.god) {
         this.head = dir;
         this.pos = new context.RoomPosition(pos);
       } else {
-        engine.schedule.set(this.id, [`move`, [dir]]);
+        player.schedule(this, [`move`, [dir]], true);
       }
       return OK;
     }
@@ -1044,12 +1044,12 @@ function create(context, engine, player, core) {
         if (amount2 <= 0) return ERR_FULL;
         let amount = this.getActiveBodyparts(WORK) * HARVEST_SOURCE_POWER;
         amount = Math.min(amount, amount1, amount2);
-        if (core) {
+        if (player.god) {
           this.store.addUsed(RESOURCE_ENERGY, amount);
           target.store.addUsed(RESOURCE_ENERGY, -amount);
         } else {
           target = engine.Game.getObjectById(target.id);
-          engine.schedule.set(this.id, [`harvest`, [target]]);
+          player.schedule(this, [`harvest`, [target]], true);
         }
         return OK;
       }
@@ -1079,12 +1079,12 @@ function create(context, engine, player, core) {
       if (amount1 <= 0) return ERR_NOT_ENOUGH_RESOURCES;
       let amount = this.getActiveBodyparts(WORK) * UPGRADE_CONTROLLER_POWER;
       amount = Math.min(amount, amount1);
-      if (core) {
+      if (player.god) {
         this.store.addUsed(RESOURCE_ENERGY, -amount);
         target.progress += amount;
       } else {
         target = engine.Game.getObjectById(target.id);
-        engine.schedule.set(this.id, [`upgradeController`, [target]]);
+        player.schedule(this, [`upgradeController`, [target]]);
       }
       return OK;
     }
@@ -1247,7 +1247,7 @@ function create(context, engine, player, core) {
       super(...arguments);
 
       this.owner = data.owner;
-      this.my = this.owner === player.name || core;
+      this.my = this.owner === player.name || player.god;
     }
     /** get Memory.structures[id] */
     get memory() {
@@ -1319,11 +1319,12 @@ function create(context, engine, player, core) {
       if (!_.isObject(opts)) return ERR_INVALID_ARGS;
       const directions = opts.directions || utils.dirs;
       if (_.isEmpty(directions)) return ERR_NO_PATH;
-      if (core) {
+      if (player.god) {
         context.Creep.new(this.room, this, name, directions, body, this.owner);
         this.spawning = name;
       } else {
-        engine.schedule.set(this.id, [`spawnCreep`, [body, name, opts]]);
+        const args = [body, name, opts];
+        player.schedule(this, [`spawnCreep`, args]);
       }
       return OK;
     }
