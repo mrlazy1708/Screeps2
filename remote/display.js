@@ -220,9 +220,10 @@ export class Display {
   playCreep() {
     let t = 1 - (new Date() - this.timeAnchor) / 1000;
     for (let creep of this.Creep.map.values()) {
+      const ratio = 1 / (1 + Math.exp((0.5 - t) * 10));
       creep.layer[0].translation.set(
-        creep.nextPos[0] - t * creep.deltaPos[0],
-        creep.nextPos[1] - t * creep.deltaPos[1]
+        creep.nextPos[0] - ratio * creep.deltaPos[0],
+        creep.nextPos[1] - ratio * creep.deltaPos[1]
       );
     }
   }
