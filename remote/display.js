@@ -27,16 +27,30 @@ export class Display {
     this.Structure = new Object();
     this.Creep = new Object();
 
-    this.Terrain.group = new Two.Group().addTo(this.two.scene);
-    this.Structure.group = new Two.Group().addTo(this.two.scene);
-    this.Creep.group = new Two.Group().addTo(this.two.scene);
-
     this.two.update();
   }
   setScale(ratio) {
     this.two.scene.scale = ratio;
   }
+  refreshCanvas() {
+    if (this.Terrain.group != undefined){
+      this.Terrain.group.remove();
+    }
+    if (this.Structure.group != undefined){
+      this.Structure.group.remove();
+    }
+    if (this.Creep.group != undefined){
+      this.Creep.group.remove();
+    }
+
+    this.Terrain.group = new Two.Group().addTo(this.two.scene);
+    this.Structure.group = new Two.Group().addTo(this.two.scene);
+    this.Creep.group = new Two.Group().addTo(this.two.scene);
+
+    this.Creep.map = new Map();
+  }
   refreshTerrain(info) {
+    this.Terrain.str = info.terrain;
     const terrain = info.terrain.split(",");
     let block;
     for (let i = 0; i != X_SIZE; i++) {
@@ -99,28 +113,54 @@ export class Display {
     }
   }
   refreshCreep(info) {
+    let creep;
     for (let crp in info.creeps) {
-      let creep = new Two.Circle(
-        info.creeps[crp].pos[0] * BLOCK_SIZE + BLOCK_SIZE / 2,
-        info.creeps[crp].pos[1] * BLOCK_SIZE + BLOCK_SIZE / 2,
-        0.5 * BLOCK_SIZE
-      );
-      creep.fill = CREEP_COLOR;
-      creep.noStroke();
-      this.Creep.group.add(creep);
+      if (this.Creep.map.has(info.creeps[crp].id)) {
+        creep = this.Creep.map.get(info.creeps[crp].id);
+        creep.live = true;
+        creep.translation.set(
+          info.creeps[crp].pos[0] * BLOCK_SIZE + BLOCK_SIZE / 2,
+          info.creeps[crp].pos[1] * BLOCK_SIZE + BLOCK_SIZE / 2
+        );
+      } else {
+        creep = new Two.Circle(
+          info.creeps[crp].pos[0] * BLOCK_SIZE + BLOCK_SIZE / 2,
+          info.creeps[crp].pos[1] * BLOCK_SIZE + BLOCK_SIZE / 2,
+          0.5 * BLOCK_SIZE
+        );
+        creep.fill = CREEP_COLOR;
+        creep.noStroke();
+        creep.live = true;
+        this.Creep.map.set(info.creeps[crp].id, creep);
+        this.Creep.group.add(creep);
+      }
+    }
+    for (let crpPair of this.Creep.map) {
+      if (crpPair[1].live === false) {
+        this.Creep.group.remove(crpPair[1]);
+        this.Creep.map.delete(crpPair[0]);
+      } else {
+        crpPair[1].live = false;
+      }
     }
   }
   display(info) {
     if (info === undefined) {
       return;
     }
+    if (this.Terrain.str != info.terrain) {
+      this.totalRefresh = true;
+    }
     this.setScale(this.canvasElement.offsetWidth / ORIGIN_RES);
     if (this.totalRefresh) {
+      this.refreshCanvas();
+
       this.refreshTerrain(info);
       this.refreshStructure(info);
       this.refreshCreep(info);
       this.totalRefresh = false;
     } else {
+      this.refreshCreep(info);
     }
   }
 }
