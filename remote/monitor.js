@@ -42,14 +42,13 @@ function twoCanvasMove(event) {
     }
   };
 }
-
 function twoCanvasZoom(event) {
   const upBox = document.querySelector("#upper-left-monitor");
   const canvas = document.querySelector("#two-canvas");
   const [mouseX, mouseY] = [event.pageX, event.pageY],
     ratioX = (mouseX - canvas.offsetLeft) / canvas.offsetWidth,
     ratioY = (mouseY - canvas.offsetTop) / canvas.offsetHeight;
-  let size = canvas.offsetWidth * (event.wheelDelta > 0 ? 1 / 0.9 : 0.9);
+  let size = canvas.offsetWidth * (event.wheelDelta > 0 ? 1 / 0.95 : 0.95);
   size = Math.max(Math.min(size, 4000), 40);
   canvas.style.width = `${size}px`;
   canvas.style.height = `${size}px`;

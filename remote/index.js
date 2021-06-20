@@ -44,4 +44,5 @@ let cnt = 0;
 initCanvas();
 const display = new Display();
 setInterval(main, QUEST_INTERVAL);
+display.display();
 setInterval(refresh, REFRESH_INTERVAL);

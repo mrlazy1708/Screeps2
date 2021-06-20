@@ -21,6 +21,7 @@ export class Display {
       width: ORIGIN_RES,
       autostart: true,
     }).appendTo(this.canvasElement);
+    this.two.scene.scale = this.canvasElement.offsetWidth / ORIGIN_RES;
 
     this.Terrain = new Object();
     this.Structure = new Object();
@@ -42,8 +43,8 @@ export class Display {
       for (let j = 0; j != Y_SIZE; j++) {
         if (terrain[j][i] === "x") {
           block = new Two.Rectangle(
-            i * BLOCK_SIZE,
-            j * BLOCK_SIZE,
+            i * BLOCK_SIZE + BLOCK_SIZE / 2,
+            j * BLOCK_SIZE + BLOCK_SIZE / 2,
             BLOCK_SIZE,
             BLOCK_SIZE
           );
@@ -52,8 +53,8 @@ export class Display {
           this.Terrain.group.add(block);
         } else if (terrain[j][i] === "~") {
           block = new Two.Rectangle(
-            i * BLOCK_SIZE,
-            j * BLOCK_SIZE,
+            i * BLOCK_SIZE + BLOCK_SIZE / 2,
+            j * BLOCK_SIZE + BLOCK_SIZE / 2,
             BLOCK_SIZE,
             BLOCK_SIZE
           );
@@ -66,8 +67,8 @@ export class Display {
   }
   refreshSource(info) {
     let source = new Two.Rectangle(
-      info.pos[0] * BLOCK_SIZE + BLOCK_SIZE / 2 - 0.475 * BLOCK_SIZE,
-      info.pos[1] * BLOCK_SIZE + BLOCK_SIZE / 2 - 0.475 * BLOCK_SIZE,
+      info.pos[0] * BLOCK_SIZE + BLOCK_SIZE / 2,
+      info.pos[1] * BLOCK_SIZE + BLOCK_SIZE / 2,
       0.95 * BLOCK_SIZE,
       0.95 * BLOCK_SIZE
     );
@@ -77,8 +78,8 @@ export class Display {
   }
   refreshController(info) {
     let controller = new Two.Circle(
-      info.pos[0] * BLOCK_SIZE + BLOCK_SIZE / 2 ,
-      info.pos[1] * BLOCK_SIZE + BLOCK_SIZE / 2 ,
+      info.pos[0] * BLOCK_SIZE + BLOCK_SIZE / 2,
+      info.pos[1] * BLOCK_SIZE + BLOCK_SIZE / 2,
       0.5 * BLOCK_SIZE
     );
     controller.fill = CONTROLLER_COLOR;
@@ -104,7 +105,7 @@ export class Display {
         info.creeps[crp].pos[1] * BLOCK_SIZE + BLOCK_SIZE / 2,
         0.5 * BLOCK_SIZE
       );
-      creep.fill=CREEP_COLOR;
+      creep.fill = CREEP_COLOR;
       creep.noStroke();
       this.Creep.group.add(creep);
     }
@@ -113,16 +114,13 @@ export class Display {
     if (info === undefined) {
       return;
     }
-    this.setScale(this.canvasElement.offsetWidth/ORIGIN_RES);
+    this.setScale(this.canvasElement.offsetWidth / ORIGIN_RES);
     if (this.totalRefresh) {
       this.refreshTerrain(info);
       this.refreshStructure(info);
       this.refreshCreep(info);
       this.totalRefresh = false;
     } else {
-      this.Creep.group.remove();
-      this.Creep.group = new Two.Group().addTo(this.two.scene);
-      this.refreshCreep(info);
     }
   }
 }
