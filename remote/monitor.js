@@ -49,7 +49,7 @@ function twoCanvasZoom(event) {
     ratioX = (mouseX - canvas.offsetLeft) / canvas.offsetWidth,
     ratioY = (mouseY - canvas.offsetTop) / canvas.offsetHeight;
   let size = canvas.offsetWidth * (event.wheelDelta > 0 ? 1 / 0.95 : 0.95);
-  size = Math.max(Math.min(size, 4000), 40);
+  size = Math.max(Math.min(size, 3000), 40);
   canvas.style.width = `${size}px`;
   canvas.style.height = `${size}px`;
   canvas.style.left = `${mouseX - ratioX * size}px`;

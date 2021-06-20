@@ -25,24 +25,22 @@ function main() {
 }
 
 function request(object) {
-  info = object;
-  if (cnt == 0) {
+  if (cnt <= 3) {
     console.log(object);
     cnt++;
   }
+  display.refresh(object);
 }
 
-function refresh() {
-  display.display(info);
+function play(){
+  display.play();
 }
 
 const QUEST_INTERVAL = 1000;
 const REFRESH_INTERVAL = 16;
-let info;
 let cnt = 0;
 
 initCanvas();
 const display = new Display();
 setInterval(main, QUEST_INTERVAL);
-display.display();
-setInterval(refresh, REFRESH_INTERVAL);
+setInterval(play, REFRESH_INTERVAL);
