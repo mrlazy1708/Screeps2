@@ -116,9 +116,6 @@ function create(context, engine, player) {
 
       this.terrain = new RoomTerrain(data.terrain);
 
-      this.energyAvailable = 0;
-      this.energyCapacity = 0;
-
       this.controller = null;
 
       this.creeps = _.mapValues(
@@ -269,6 +266,25 @@ function create(context, engine, player) {
       // if (type === FIND_TOMBSTONES)
       // if (type === FIND_DEPOSITS)
       // if (type === FIND_RUINS)
+    }
+
+    /**
+     * Total amount of energy available in all spawns and extensions in the room.
+     *
+     */
+    get energyAvailable() {
+      const pred = (structure) => structure instanceof StructureSpawn,
+        energyStructures = _.filter(_structures.get(this.name), pred),
+        get = (structure) => structure.store.getUsed(RESOURCE_ENERGY);
+      return _.sum(energyStructures, get);
+    }
+
+    /** Total amount of energyCapacity of all spawns and extensions in the room. */
+    get energyCapacity() {
+      const pred = (structure) => structure instanceof StructureSpawn,
+        energyStructures = _.filter(_structures.get(this.name), pred),
+        get = (structure) => structure.store.getCapacity(RESOURCE_ENERGY);
+      return _.sum(energyStructures, get);
     }
 
     /** INTERNAL */
@@ -740,7 +756,7 @@ function create(context, engine, player) {
       const ret = this[action](...args);
       if (ret !== OK) {
         console.log1(`Conflict detected!`);
-        console.log1(`${this.id} ${action} [${args}] returns ${ret}`);
+        console.log1(`  ${this.id} ${action} [${args}] returns ${ret}`);
       }
 
       this.pos = this.pos.clamp();
@@ -976,7 +992,7 @@ function create(context, engine, player) {
      */
     move(dir) {
       if (!this.my) return ERR_NOT_OWNER;
-      if (this.ticksToLive > CREEP_LIFE_TIME) return ERR_NOT_AVAILABLE;
+      if (this.spawning) return ERR_NOT_AVAILABLE;
       if (!this.getActiveBodyparts(MOVE)) return ERR_NO_BODYPART;
       if (!_.includes(utils.dirs, dir)) return ERR_INVALID_ARGS;
       if (this.fatigue > 0) return ERR_TIRED;
@@ -1008,7 +1024,7 @@ function create(context, engine, player) {
      */
     moveByPath(path) {
       if (!this.my) return ERR_NOT_OWNER;
-      if (this.ticksToLive > CREEP_LIFE_TIME) return ERR_NOT_AVAILABLE;
+      if (this.spawning) return ERR_NOT_AVAILABLE;
       if (!this.getActiveBodyparts(MOVE)) return ERR_NO_BODYPART;
       if (!_.isArray(path)) return ERR_INVALID_ARGS;
       if (path.length === 0) return ERR_NO_PATH;
@@ -1037,7 +1053,7 @@ function create(context, engine, player) {
      */
     moveTo(target, arg = {}, opts = {}) {
       if (!this.my) return ERR_NOT_OWNER;
-      if (this.ticksToLive > CREEP_LIFE_TIME) return ERR_NOT_AVAILABLE;
+      if (this.spawning) return ERR_NOT_AVAILABLE;
       if (!this.getActiveBodyparts(MOVE)) return ERR_NO_BODYPART;
       if (_.isUndefined(target) || _.isNull(target)) return ERR_INVALID_ARGS;
       if (!(target instanceof RoomPosition)) {
@@ -1075,7 +1091,7 @@ function create(context, engine, player) {
      */
     harvest(target) {
       if (!this.my) return ERR_NOT_OWNER;
-      if (this.ticksToLive > CREEP_LIFE_TIME) return ERR_NOT_AVAILABLE;
+      if (this.spawning) return ERR_NOT_AVAILABLE;
       if (target instanceof StructureSource) {
         if (!this.getActiveBodyparts(WORK)) return ERR_NO_BODYPART;
         if (this.pos.getRangeTo(target) > HARVEST_RANGE)
@@ -1112,7 +1128,7 @@ function create(context, engine, player) {
      */
     upgradeController(target) {
       if (!this.my) return ERR_NOT_OWNER;
-      if (this.ticksToLive > CREEP_LIFE_TIME) return ERR_NOT_AVAILABLE;
+      if (this.spawning) return ERR_NOT_AVAILABLE;
       if (!this.getActiveBodyparts(WORK)) return ERR_NO_BODYPART;
       if (!(target instanceof StructureController)) return ERR_INVALID_ARGS;
       if (this.pos.getRangeTo(target) > UPGRADE_CONTROLLER_RANGE)
@@ -1126,7 +1142,24 @@ function create(context, engine, player) {
         target.progress += amount;
       } else {
         target = engine.Game.getObjectById(target.id);
-        player.schedule(this, [`upgradeController`, [target]]);
+        player.schedule(this, [`upgradeController`, [target]], true);
+      }
+      return OK;
+    }
+
+    /**
+     * Kill the creep immediately.
+     *
+     * @returns {string} OK or ERR codes.
+     *
+     */
+    suicide() {
+      if (!this.my) return ERR_NOT_OWNER;
+      if (this.spawning) return ERR_NOT_AVAILABLE;
+      if (player.god) {
+        deleteCreep(this.room, this);
+      } else {
+        player.schedule(this, [`suicide`, []], true);
       }
       return OK;
     }
@@ -1354,9 +1387,6 @@ function create(context, engine, player) {
         [RESOURCE_ENERGY],
         SPAWN_ENERGY_CAPACITY
       );
-
-      this.room.energyAvailable += this.store.getUsed(RESOURCE_ENERGY);
-      this.room.energyCapacity += this.store.getCapacity(RESOURCE_ENERGY);
     }
 
     /** INTERNAL */
@@ -1413,7 +1443,9 @@ function create(context, engine, player) {
       if (!_.isString(name)) return ERR_INVALID_ARGS;
       if (!_.isUndefined(context.Game.creeps[name])) return ERR_NAME_EXISTS;
       if (!_.isObject(opts)) return ERR_INVALID_ARGS;
-      if (_.isString(this.spawning)) return ERR_NOT_AVAILABLE;
+      if (player.god && _.isString(this.spawning)) return ERR_NOT_AVAILABLE;
+      if (!player.god && this.spawning instanceof Creep)
+        return ERR_NOT_AVAILABLE;
       let energyRequired = _.sum(
         _.map(body, (bodypart) => CREEP_BODYPART_COST[bodypart])
       );
@@ -1433,12 +1465,11 @@ function create(context, engine, player) {
         };
         drain(this); // Always drain energy from spawn forst
         _.forEach(_structures.get(this.room.name), drain);
-        this.room.energyAvailable -= energyRequired;
         context.Creep.new(this.room, this, name, directions, body, this.owner);
         this.spawning = name;
       } else {
         const args = [body, name, opts];
-        player.schedule(this, [`spawnCreep`, args]);
+        player.schedule(this, [`spawnCreep`, args], true);
       }
       return OK;
     }
