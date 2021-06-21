@@ -36,6 +36,18 @@ const server = http
         response.writeHead(200, { "content-Type": "text/javascript" });
         fs.createReadStream("./remote/monitor.js").pipe(response);
         break;
+      case `/utils.js`:
+        response.writeHead(200, { "content-Type": "text/javascript" });
+        fs.createReadStream("./src/utils.js").pipe(response);
+        break;
+      case `/constants.js`:
+        response.writeHead(200, { "content-Type": "text/javascript" });
+        fs.createReadStream("./src/constants.js").pipe(response);
+        break;
+      case `/setup.js`:
+        response.writeHead(200, { "content-Type": "text/javascript" });
+        fs.createReadStream("./src/setup.js").pipe(response);
+        break;
       case `/data`:
         response.writeHead(200, { "content-Type": "text/plain" });
         request.on(`data`, (chunk) => {
