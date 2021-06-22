@@ -16,6 +16,7 @@ canvas {
   height: 100%;
   display: block;
 }
+
 ::-webkit-scrollbar {
   height: 10px;
   width: 10px;
@@ -40,7 +41,7 @@ canvas {
   width: 80%;
   height: 100%;
   border-width: 0;
-  background-color: #333333;
+  background-color: #1c1c1c;
 }
 #upper-right-monitor {
   position: relative;

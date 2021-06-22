@@ -13,28 +13,16 @@
 
 <body>
   <div id="upper-monitor">
-    <div
-      id="upper-left-monitor"
-      onmousedown="twoCanvasMove(event);"
-      onmousewheel="twoCanvasZoom(event);"
-    ></div>
+    <div id="upper-left-monitor" onmousedown="twoCanvasMove(event);" onmousewheel="twoCanvasZoom(event);"></div>
     <div id="upper-right-monitor"></div>
   </div>
   <div id="lower-monitor">
     <div id="console-menu">Console</div>
     <p id="console-output"></p>
     <div id="console-input-box">
-      <input
-        id="console-input"
-        value="> "
-        onkeydown="consoleInput(this,event);"
-      />
+      <input id="console-input" value="> " onkeydown="consoleInput(this,event);" />
     </div>
   </div>
-  <div
-    id="up-low-divline"
-    onmouseover="style.opacity='0.3';"
-    onmouseout="style.opacity='0';"
-    onmousedown="upLowDivlineMove(event);"
-  ></div>
+  <div id="up-low-divline" onmouseover="style.opacity='0.3';" onmouseout="style.opacity='0';"
+    onmousedown="upLowDivlineMove(event);"></div>
 </body>

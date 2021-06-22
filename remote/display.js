@@ -83,7 +83,7 @@ export class Display {
                    [null, 5, null, 3],
                    [5, null, 7, null]];
 
-    function strokeTerrain(group, on, color, stroke) {
+    function strokeTerrain(group, on, fill, stroke) {
       const vis = _.map(Array(Y_SIZE), () => Array(X_SIZE).fill(false));
       function dfs1(x, y, c = y * X_SIZE + x + 1) {
         vis[y][x] = c;
@@ -98,7 +98,6 @@ export class Display {
         ldudv = _.initial(_.clone(rdudv)),
         ldr = _.zip((ldudv.unshift(_.last(rdudv)), ldudv), dudv, rdudv); // [[-1, -1], [0, -1], [1, -1]], [[1, -1], [1, 0], [1, 1]], [[1, 1], [0, 1], [-1, 1]], [[-1, 1], [-1, 0], [-1, -1]]]
       function dfs2(x, y, gis, c = y * X_SIZE + x + 1, p = 0, path = null) {
-        gis[y][x] = true;
         _.forEach(ldr, ([[lu, lv], [du, dv], [ru, rv]], i) => {
           const [u, v] = [x + du, y + dv];
           (lu = x - 0.5 + lu / 2), (lv = y - 0.5 + lv / 2);
@@ -106,6 +105,7 @@ export class Display {
           const vl = (vis[lv] || [])[lu] || false,
             vr = (vis[rv] || [])[ru] || false;
           if ((vl !== c) !== (vr !== c) && !gis[v][u]) {
+            gis[v][u] = true;
             if (!_.isNull(path)) throw new Error(`Un-handled ${[x, y]}!`);
             const edge = new Two.Anchor(),
               [dx, dy] = dxdy[delta[p][i]] || [0, 0];
@@ -130,16 +130,17 @@ export class Display {
             const gis = _.map(Array(Y_SIZE + 1), () => Array(X_SIZE + 1)),
               points = (dfs1(x, y), dfs2(x, y, gis)),
               path = new Two.Path(points, true, false, true);
-            if (!stroke) path.noStroke();
-            else path.linewidth = 4;
-            (path.fill = color), group.add(path);
+            path.linewidth = 6;
+            path.fill = fill;
+            path.stroke = stroke;
+            group.add(path);
           }
         })
       );
     }
 
-    strokeTerrain(this.Terrain.group, `~`, SWAMP_COLOR);
-    strokeTerrain(this.Terrain.group, `x`, WALL_COLOR, true);
+    strokeTerrain(this.Terrain.group, `~`, SWAMP_COLOR, `#292a21`);
+    strokeTerrain(this.Terrain.group, `x`, WALL_COLOR, `#000000`);
   }
   newSource(info) {
     let source = new Object();
