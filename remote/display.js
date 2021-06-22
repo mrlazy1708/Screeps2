@@ -146,11 +146,12 @@ export class Display {
     let source = new Object();
     source.layer = new Array();
     source.layer.push(
-      new Two.Rectangle(
+      new Two.RoundedRectangle(
         info.pos[0] * BLOCK_SIZE + BLOCK_SIZE / 2,
         info.pos[1] * BLOCK_SIZE + BLOCK_SIZE / 2,
-        0.95 * BLOCK_SIZE,
-        0.95 * BLOCK_SIZE
+        0.6 * BLOCK_SIZE,
+        0.6 * BLOCK_SIZE,
+        0.15 * BLOCK_SIZE
       )
     );
     source.layer[0].fill = SOURCE_COLOR;

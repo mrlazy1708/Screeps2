@@ -6,7 +6,10 @@ function upLowDivlineMove(event) {
   window.onmouseup = () => (mouseDown = false);
   window.onmousemove = function (event) {
     if (mouseDown) {
-      const boxY = Math.min(Math.max(event.pageY, window.outerHeight * 0.6),window.outerHeight*0.7);
+      const boxY = Math.min(
+        Math.max(event.pageY, window.outerHeight * 0.6),
+        window.outerHeight * 0.7
+      );
       divline.style.top = `${(100 * boxY) / window.innerHeight}%`;
       upBox.style.height = `${(100 * boxY) / window.innerHeight}%`;
       lowBox.style.height = `${100 * (1 - boxY / window.innerHeight)}%`;
@@ -57,13 +60,45 @@ function twoCanvasZoom(event) {
   clamp(upBox, canvas);
 }
 
-function consoleInput(element,event){
-  const output=document.querySelector("#console-ouput");
-  if(event.keyCode===13){
+function consoleInput(element, event) {
+  const output = document.querySelector("#console-output");
+  if (event.keyCode === 13) {
     console.log(element.value);
-    output.innerHTML+=`${element.value.slice(2)}\<br\>`
-    element.value="> ";
-  }else if(event.keyCode===8&&element.value==="> "){
-    event.returnValue=false;
+    output.innerHTML += `${element.value.slice(2)}\<br\>`;
+    element.value = "> ";
+  } else if (event.keyCode === 8 && element.value === "> ") {
+    event.returnValue = false;
   }
 }
+
+function switchWindow(tag) {
+  const consoleInput = document.querySelector("#console-input");
+  const consoleWindow = document.querySelector("#console-window");
+  const scriptWindow = document.querySelector("#codeEditor");
+  switch (tag) {
+    case "script":
+      consoleInput.disabled = true;
+      consoleWindow.style.display = "none";
+      scriptWindow.style.display = "inline";
+      break;
+    case "console":
+      consoleInput.disabled = false;
+      consoleWindow.style.display = "inline";
+      scriptWindow.style.display = "none";
+      break;
+  }
+}
+
+function initEditor() {
+  editor = ace.edit("codeEditor");
+  theme = "tomorrow_night";
+  language = "javascript";
+  editor.setTheme("ace/theme/" + theme);
+  editor.session.setMode("ace/mode/" + language);
+  editor.setFontSize(12);
+
+  editor.setReadOnly(false);
+  editor.session.setTabSize(2);
+  editor.setShowPrintMargin(false);
+}
+initEditor();

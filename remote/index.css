@@ -65,6 +65,7 @@ canvas {
   left: 0;
   right: 0;
   height: 25px;
+  cursor: default;
   background-color: #424242;
   color: #aaa;
   padding-left: 10px;
