@@ -55,7 +55,11 @@ export class Display {
   }
   refreshTerrain(info) {
     this.Terrain.str = info.terrain;
-    const terrain = info.terrain.split(",");
+    const terrain = _.map(info.terrain.split(`,`), (r) => r.split(``));
+    _.forEach(terrain, (r) => (r.push(_.last(r)), r.unshift(_.head(r))));
+    terrain.push(_.last(terrain)), terrain.unshift(_.head(terrain));
+
+    const [X, Y] = [X_SIZE + 2, Y_SIZE + 2];
 
     // prettier-ignore
     const dudv = [[0, -1], [1, 0], [0, 1], [-1, 0]];
@@ -84,12 +88,12 @@ export class Display {
                    [5, null, 7, null]];
 
     function strokeTerrain(group, on, fill, stroke) {
-      const vis = _.map(Array(Y_SIZE), () => Array(X_SIZE).fill(false));
-      function dfs1(x, y, c = y * X_SIZE + x + 1) {
+      const vis = _.map(Array(Y), () => Array(X).fill(false));
+      function dfs1(x, y, c = y * X + x + 1) {
         vis[y][x] = c;
         _.forEach(dudv, ([du, dv]) => {
           const [u, v] = [x + du, y + dv];
-          if (u < 0 || u >= X_SIZE || v < 0 || v >= Y_SIZE) return;
+          if (u < 0 || u >= X || v < 0 || v >= Y) return;
           if (vis[v][u] !== false || terrain[v][u] !== on) return;
           dfs1(u, v, c);
         });
@@ -97,7 +101,7 @@ export class Display {
       const rdudv = _.filter(dxdy, (_, i) => i % 2),
         ldudv = _.initial(_.clone(rdudv)),
         ldr = _.zip((ldudv.unshift(_.last(rdudv)), ldudv), dudv, rdudv); // [[-1, -1], [0, -1], [1, -1]], [[1, -1], [1, 0], [1, 1]], [[1, 1], [0, 1], [-1, 1]], [[-1, 1], [-1, 0], [-1, -1]]]
-      function dfs2(x, y, gis, c = y * X_SIZE + x + 1, p = 0, path = null) {
+      function dfs2(x, y, gis, c = y * X + x + 1, p = 0, path = null) {
         _.forEach(ldr, ([[lu, lv], [du, dv], [ru, rv]], i) => {
           const [u, v] = [x + du, y + dv];
           (lu = x - 0.5 + lu / 2), (lv = y - 0.5 + lv / 2);
@@ -110,24 +114,24 @@ export class Display {
             const edge = new Two.Anchor(),
               [dx, dy] = dxdy[delta[p][i]] || [0, 0];
             edge.command = Two.Commands.curve;
-            edge.x = (x - dx * 0.1) * BLOCK_SIZE;
-            edge.y = (y - dy * 0.1) * BLOCK_SIZE;
+            edge.x = (x - 1 - dx * 0.1) * BLOCK_SIZE;
+            edge.y = (y - 1 - dy * 0.1) * BLOCK_SIZE;
             edge.controls.left = controlL[p][i];
             edge.controls.right = controlR[p][i];
             const anchor = new Two.Anchor();
             anchor.command = Two.Commands.curve;
-            anchor.x = (x + du * 0.5) * BLOCK_SIZE;
-            anchor.y = (y + dv * 0.5) * BLOCK_SIZE;
+            anchor.x = (x - 1 + du * 0.5) * BLOCK_SIZE;
+            anchor.y = (y - 1 + dv * 0.5) * BLOCK_SIZE;
             path = dfs2(u, v, gis, c, i);
             path.unshift(anchor), path.unshift(edge);
           }
         });
         return path || [];
       }
-      _.forEach(_.range(Y_SIZE), (y) =>
-        _.forEach(_.range(X_SIZE), (x) => {
+      _.forEach(_.range(Y), (y) =>
+        _.forEach(_.range(X), (x) => {
           if (terrain[y][x] === on && vis[y][x] === false) {
-            const gis = _.map(Array(Y_SIZE + 1), () => Array(X_SIZE + 1)),
+            const gis = _.map(Array(Y + 1), () => Array(X + 1)),
               points = (dfs1(x, y), dfs2(x, y, gis)),
               path = new Two.Path(points, true, false, true);
             path.linewidth = 6;
@@ -141,6 +145,14 @@ export class Display {
 
     strokeTerrain(this.Terrain.group, `~`, SWAMP_COLOR, `#292a21`);
     strokeTerrain(this.Terrain.group, `x`, WALL_COLOR, `#000000`);
+    const mask = new Two.Path([
+      new Two.Vector(0, 0),
+      new Two.Vector(0, Y_SIZE * BLOCK_SIZE),
+      new Two.Vector(X_SIZE * BLOCK_SIZE, Y_SIZE * BLOCK_SIZE),
+      new Two.Vector(X_SIZE * BLOCK_SIZE, 0),
+    ]);
+    this.Terrain.group.add(mask);
+    this.Terrain.group.mask = mask;
   }
   newSource(info) {
     let source = new Object();
@@ -149,8 +161,8 @@ export class Display {
       new Two.RoundedRectangle(
         info.pos[0] * BLOCK_SIZE + BLOCK_SIZE / 2,
         info.pos[1] * BLOCK_SIZE + BLOCK_SIZE / 2,
-        0.6 * BLOCK_SIZE,
-        0.6 * BLOCK_SIZE,
+        0.8 * BLOCK_SIZE,
+        0.8 * BLOCK_SIZE,
         0.15 * BLOCK_SIZE
       )
     );
