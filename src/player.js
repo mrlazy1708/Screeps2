@@ -12,17 +12,16 @@ class Player {
     this.engine = engine;
     this.name = name;
 
-    this.script = fs.readFileSync(
-      `./local/players/${this.name}/script/main.js`,
-      {
-        encoding: `utf8`,
-      }
+    const prefix = `./local/players/${this.name}`;
+    this.watch = fs.watch(`${prefix}/script`, { recursive: true }, (_, file) =>
+      fs.readFile(`${prefix}/script/${file}`, (err, data) => {
+        if (err) console.log1(`Read script ${err}`);
+        else this.script = data.toString();
+      })
     );
+    this.script = fs.readFileSync(`${prefix}/script/main.js`);
 
-    this.memory = fs.readFileSync(`./local/players/${this.name}/memory.json`, {
-      encoding: `utf8`,
-      flag: `a+`,
-    });
+    this.memory = fs.readFileSync(`${prefix}/memory.json`, { flag: `a+` });
   }
   runTick(callback) {
     /** create context */
@@ -41,8 +40,8 @@ class Player {
     Object.assign(context.Memory, JSON.parse(this.memory));
 
     /** run code */
-    const script = new vm.Script(this.script);
     try {
+      const script = new vm.Script(this.script);
       script.runInContext(context);
     } catch (err) {
       console.error(err);
@@ -56,8 +55,20 @@ class Player {
 
     callback();
   }
+  setScript(script) {
+    try {
+      fs.writeFileSync(`./local/players/${this.name}/script/main.js`, script);
+      return `ok`;
+    } catch (err) {
+      return err.toString();
+    }
+  }
   schedule(object, args, own) {
     return this.engine.schedule(this, object, args, own);
+  }
+  close() {
+    if (this.watch) this.watch.close();
+    return true;
   }
   recover() {
     const recover = {};

@@ -124,7 +124,22 @@ class Engine {
           : null;
     });
   }
+  getRoomData(roomName) {
+    const room = this.Game.rooms[roomName];
+    if (room instanceof this.Room) return JSON.stringify(room.recover());
+  }
+  getScript(playerName) {
+    const player = this.players[playerName];
+    if (player instanceof Player) return player.script;
+    return ERR_NOT_FOUND;
+  }
+  setScript(playerName, script) {
+    const player = this.players[playerName];
+    if (player instanceof Player) return player.setScript(script);
+    return ERR_NOT_FOUND;
+  }
   close(callback) {
+    _.forEach(this.players, (player) => player.close());
     return (this.running = callback);
   }
   recover() {

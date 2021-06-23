@@ -54,10 +54,14 @@ const server = http
           try {
             const data = JSON.parse(chunk.toString());
             if (data.request === "getRoomData")
-              response.write(
-                JSON.stringify(engine.Game.rooms[data.roomName].recover())
-              );
-          } catch (err) {}
+              response.write(engine.getRoomData(data.roomName));
+            if (data.request === `getScript`)
+              response.write(engine.getScript(data.auth.name));
+            if (data.request === `setScript`)
+              response.write(engine.setScript(data.auth.name, data.script));
+          } catch (err) {
+            console.log1(err);
+          }
         });
         request.on(`end`, () => response.end());
         break;
