@@ -542,6 +542,17 @@ function create(context, engine, player) {
     }
 
     /** INTERNAL */
+    around(x, y) {
+      if (x instanceof RoomPosition) (y = x.y), (x = x.x);
+      const poss = _.map(utils.dxdy, ([dx, dy]) => {
+        const [xp, yp] = [x + dx, y + dy];
+        if (x >= 0 && x < ROOM_WIDTH && y >= 0 && y < ROOM_HEIGHT)
+          return this.at(xp, yp);
+      });
+      return _.filter(poss);
+    }
+
+    /** INTERNAL */
     array() {
       return _.map(this.data, (row) => _.map(row, utils.symbol));
     }
@@ -562,6 +573,7 @@ function create(context, engine, player) {
     static reduce() {
       delete RoomTerrain.prototype.compress;
       delete RoomTerrain.prototype.decompress;
+      delete RoomTerrain.prototype.around;
       delete RoomTerrain.prototype.array;
       delete RoomTerrain.prototype.print;
       delete RoomTerrain.prototype.recover;

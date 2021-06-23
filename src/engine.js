@@ -100,14 +100,17 @@ class Engine {
         )
     );
 
-    const smoo = (x) => Math.floor(((x - 0.5) ** 3 + 0.1) * 20);
+    const smoo = (x) => Math.floor(Math.tan((x - 0.58) * 2) + 2.5);
     _.forEach(this.rooms, (room) => {
       const fertility = smoo(this.RNG.rand()),
+        terrain = room.terrain,
         poss = _.filter(
           _.flatMap(_.range(5, ROOM_HEIGHT - 5), (y) =>
             _.map(_.range(5, ROOM_WIDTH - 5), (x) => [x, y])
           ),
-          ([x, y]) => _.isEqual(room.at(x, y), [TERRAIN_WALL])
+          ([x, y]) =>
+            terrain.at(x, y) === TERRAIN_WALL &&
+            !_.every(terrain.around(x, y), (look) => look === TERRAIN_WALL)
         );
 
       const sources = _.map(Array(fertility).fill(room), (room) =>
