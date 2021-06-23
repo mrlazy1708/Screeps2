@@ -1,4 +1,4 @@
-function upLowDivlineMove(event) {
+export function upLowDivlineMove(event) {
   let mouseDown = true;
   const divline = document.querySelector("#up-low-divline");
   const upBox = document.querySelector("#upper-monitor");
@@ -28,7 +28,7 @@ function clamp(upBox, canvas) {
   canvas.style.top = `${Math.max(Math.min(canvasY, upperY), lowerY)}px`;
 }
 
-function twoCanvasMove(event) {
+export function twoCanvasMove(event) {
   let mouseDown = true;
   const upBox = document.querySelector("#upper-left-monitor");
   const canvas = document.querySelector("#two-canvas");
@@ -45,7 +45,8 @@ function twoCanvasMove(event) {
     }
   };
 }
-function twoCanvasZoom(event) {
+
+export function twoCanvasZoom(event) {
   const upBox = document.querySelector("#upper-left-monitor");
   const canvas = document.querySelector("#two-canvas");
   const [mouseX, mouseY] = [event.pageX, event.pageY],
@@ -71,7 +72,7 @@ function consoleInput(element, event) {
   }
 }
 
-function switchWindow(tag) {
+export function switchWindow(tag) {
   const consoleInput = document.querySelector("#console-input");
   const consoleWindow = document.querySelector("#console-window");
   const scriptWindow = document.querySelector("#codeEditor");
@@ -101,4 +102,4 @@ function initEditor() {
   editor.session.setTabSize(2);
   editor.setShowPrintMargin(false);
 }
-initEditor();
+// initEditor();

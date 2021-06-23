@@ -128,6 +128,11 @@ class Engine {
     const room = this.Game.rooms[roomName];
     if (room instanceof this.Room) return JSON.stringify(room.recover());
   }
+  getRoomMap(roomName) {
+    const room = this.Game.rooms[roomName];
+    if (room instanceof this.Room)
+      return this.RoomTerrain.compress(room.array());
+  }
   getScript(playerName) {
     const player = this.players[playerName];
     if (player instanceof Player) return player.script;

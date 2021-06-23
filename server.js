@@ -1,12 +1,16 @@
 `use strict`;
 
 const _ = require(`lodash`);
+const assert = require(`assert/strict`);
 const fs = require(`fs`);
 const repl = require(`repl`);
 const http = require(`http`);
 const Engine = require(`./src/engine`);
 
 const engine = new Engine();
+
+const pass = JSON.parse(fs.readFileSync(`./local/pass.json`)),
+  stat = _.mapValues(pass, () => false);
 
 const server = http
   .createServer(function (request, response) {
@@ -48,17 +52,59 @@ const server = http
         response.writeHead(200, { "content-Type": "text/javascript" });
         fs.createReadStream("./src/setup.js").pipe(response);
         break;
+      case `/auth`:
+        response.writeHead(200, { "content-Type": "text/plain" });
+        request.on(`data`, (chunk) => {
+          try {
+            const data = JSON.parse(chunk.toString()),
+              auth = data.auth;
+            if (data.request === "login") {
+              if (stat[auth.name] === undefined)
+                response.write(JSON.stringify(ERR_NOT_FOUND));
+              stat[auth.name] = auth.pass === pass[auth.name];
+              if (stat[auth.name] === true) response.write(JSON.stringify(OK));
+              if (stat[auth.name] === false)
+                response.write(JSON.stringify(ERR_NOT_OWNER));
+            }
+            if (data.request === "register") {
+              if (pass[auth.name] !== undefined)
+                response.write(JSON.stringify(ERR_NAME_EXISTS));
+              else {
+                if (!_.isString(auth.pass))
+                  response.write(JSON.stringify(ERR_INVALID_ARGS));
+                else {
+                  pass[auth.name] = auth.pass;
+                  fs.writeFileSync(`./local/pass.json`, JSON.stringify(pass));
+                  response.write(JSON.stringify(OK));
+                }
+              }
+            }
+          } catch (err) {
+            console.log1(err);
+          }
+        });
+        request.on(`end`, () => response.end());
+        break;
       case `/data`:
         response.writeHead(200, { "content-Type": "text/plain" });
         request.on(`data`, (chunk) => {
           try {
-            const data = JSON.parse(chunk.toString());
-            if (data.request === "getRoomData")
-              response.write(engine.getRoomData(data.roomName));
-            if (data.request === `getScript`)
-              response.write(engine.getScript(data.auth.name));
-            if (data.request === `setScript`)
-              response.write(engine.setScript(data.auth.name, data.script));
+            const data = JSON.parse(chunk.toString()),
+              auth = data.auth;
+            if (stat[auth.name] === undefined)
+              response.write(JSON.stringify(ERR_NOT_FOUND));
+            if (stat[auth.name] === false)
+              response.write(JSON.stringify(ERR_NOT_AVAILABLE));
+            if (stat[auth.name] === true) {
+              if (data.request === "getRoomData")
+                response.write(engine.getRoomData(data.roomName));
+              if (data.request === "getRoomMap")
+                response.write(engine.getRoomMap(data.roomName));
+              if (data.request === `getScript`)
+                response.write(engine.getScript(auth.name));
+              if (data.request === `setScript`)
+                response.write(engine.setScript(auth.name, data.script));
+            }
           } catch (err) {
             console.log1(err);
           }
