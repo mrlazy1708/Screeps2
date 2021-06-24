@@ -54,19 +54,16 @@ function data(request, callback) {
     .then((json) => callback(json));
 }
 
+function log(info) {
+  info = info.stdout.split(`\n`);
+  _.forEach(info, (line) =>
+    consoleOutput(`[${line.slice(0, 24)}]:`, line.slice(25))
+  );
+}
+
 const REQUEST_INTERVAL = 1000;
 setInterval(
   () => data(`getRoomData`, display.refresh.bind(display)),
   REQUEST_INTERVAL
 );
-setInterval(
-  () =>
-    data(
-      `getLog`,
-      (json) =>
-        (document.querySelector(
-          "#console-output"
-        ).innerHTML += `${json.stdout}\<br\>`)
-    ),
-  REQUEST_INTERVAL
-);
+setInterval(() => data(`getLog`, (json) => log(json)), REQUEST_INTERVAL);

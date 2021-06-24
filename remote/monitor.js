@@ -61,11 +61,36 @@ function twoCanvasZoom(event) {
   clamp(upBox, canvas);
 }
 
+const output = document.querySelector(`#console-output`);
+const lines = [...output.children];
+let cnt = lines.length;
+function consoleOutput(stamp, message) {
+  const line = document.createElement(`div`);
+  line.className = `console-output-line`;
+  line.id = `console-output-line-${cnt}`;
+  output.appendChild(line), lines.push(line);
+  if (lines.length > 100) {
+    const overflow = lines.shift();
+    overflow.remove();
+  }
+  {
+    const lineStamp = document.createElement(`div`);
+    lineStamp.className = `console-output-line-stamp`;
+    lineStamp.id = `console-output-line-stamp-${cnt}`;
+    lineStamp.textContent = stamp;
+    line.appendChild(lineStamp);
+    const lineMessage = document.createElement(`div`);
+    lineMessage.className = `console-output-line-message`;
+    lineMessage.id = `console-output-line-stamp-${cnt}`;
+    lineMessage.textContent = message;
+    line.appendChild(lineMessage);
+  }
+  cnt++;
+}
+
 function consoleInput(element, event) {
-  const output = document.querySelector("#console-output");
   if (event.keyCode === 13) {
-    console.log(element.value);
-    output.innerHTML += `${element.value.slice(2)}\<br\>`;
+    consoleOutput(`[${new Date().toJSON()}]:`, `${element.value.slice(2)}\n`);
     element.value = "> ";
   } else if (event.keyCode === 8 && element.value === "> ") {
     event.returnValue = false;

@@ -32,7 +32,7 @@ class Player {
     const console = new Console({ stdout, stderr }),
       consoleLog = console.log;
     console.log = function () {
-      consoleLog.call(console, Date.now(), ...arguments);
+      consoleLog.call(console, new Date().toJSON(), ...arguments);
     };
     const context = { JSON, require, console, _ };
     vm.createContext(context);

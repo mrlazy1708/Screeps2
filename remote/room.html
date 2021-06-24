@@ -9,7 +9,7 @@
   <script src="http://cdn.bootcss.com/ace/1.2.4/ace.js"></script>
   <script src="room.js" type="module"></script>
   <script src="display.js" type="module"></script>
-  <script src="monitor.js"></script>
+  <script src="monitor.js" defer></script>
 </head>
 
 <body>
@@ -19,29 +19,17 @@
   </div>
   <div id="lower-monitor">
     <div id="console-menu">
-      <div id="console-tag" style="
-          position: relative;
-          width: 70px;
-          height: 25px;
-          text-align: center;
-          float: left;
-        " onmouseover="style.backgroundColor='#666666';" onmouseout="style.backgroundColor='#424242';"
-        onmousedown="switchWindow('script');">
+      <div class="console-menu-tag" id="console-tag" onmouseover="style.backgroundColor='#666666';"
+        onmouseout="style.backgroundColor='#424242';" onmousedown="switchWindow('script');">
         Script
       </div>
-      <div id="script-tag" style="
-          position: relative;
-          width: 70px;
-          height: 25px;
-          text-align: center;
-          float: left;
-        " onmouseover="style.backgroundColor='#666666';" onmouseout="style.backgroundColor='#424242';"
-        onmousedown="switchWindow('console');">
+      <div class="console-menu-tag" id="script-tag" onmouseover="style.backgroundColor='#666666';"
+        onmouseout="style.backgroundColor='#424242';" onmousedown="switchWindow('console');">
         Console
       </div>
     </div>
     <div id="console-window">
-      <p id="console-output"></p>
+      <div id="console-output"></div>
       <div id="console-input-box">
         <input id="console-input" value="> " onkeydown="consoleInput(this,event);" autocomplete="off" />
       </div>
