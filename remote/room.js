@@ -2,7 +2,7 @@
 
 import { Display } from "./display.js";
 
-const name = `mrlazy`;
+const name = `Alice`;
 
 /** init two canvas */
 {
@@ -37,13 +37,8 @@ const REFRESH_INTERVAL = 16;
 const display = new Display();
 setInterval(() => display.play(), REFRESH_INTERVAL);
 
-const REQUEST_INTERVAL = 1000;
-function data(roomName) {
-  const body = {
-      auth: { name },
-      request: `getRoomData`,
-      roomName: roomName,
-    },
+function data(request, callback) {
+  const body = { auth: { name }, request, roomName: `W0N0` },
     chunks = window.location.href.split(`/`);
   fetch(`http://127.0.0.1:8080/data`, {
     method: `POST`,
@@ -56,6 +51,22 @@ function data(roomName) {
         window.location.replace(`${_.initial(chunks).join(`/`)}/login`);
       return json;
     })
-    .then((json) => display.refresh(json));
+    .then((json) => callback(json));
 }
-setInterval(() => data(`W0N0`), REQUEST_INTERVAL);
+
+const REQUEST_INTERVAL = 1000;
+setInterval(
+  () => data(`getRoomData`, display.refresh.bind(display)),
+  REQUEST_INTERVAL
+);
+setInterval(
+  () =>
+    data(
+      `getLog`,
+      (json) =>
+        (document.querySelector(
+          "#console-output"
+        ).innerHTML += `${json.stdout}\<br\>`)
+    ),
+  REQUEST_INTERVAL
+);

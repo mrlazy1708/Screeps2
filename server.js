@@ -97,6 +97,8 @@ const server = http
                 responseWith(engine.getRoomData(data.roomName));
               if (data.request === "getRoomMap")
                 responseWith(engine.getRoomMap(data.roomName));
+              if (data.request === `getLog`)
+                responseWith(engine.getLog(auth.name));
               if (data.request === `getScript`)
                 responseWith(engine.getScript(auth.name));
               if (data.request === `setScript`)
@@ -134,7 +136,6 @@ local.on(`exit`, () => {
   });
 });
 Object.defineProperties(local.context, {
-  console: { value: { log: console.log1 } },
   reset: {
     value: (seed = new Date()) => (engine.requireReset = seed),
   },

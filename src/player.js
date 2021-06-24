@@ -4,6 +4,7 @@ const _ = require(`lodash`);
 const assert = require(`assert/strict`);
 const constants = require(`./constants`);
 const fs = require(`fs`);
+const { Console } = require(`console`);
 const vm = require(`vm`);
 const setup = require(`./setup`);
 
@@ -11,8 +12,9 @@ class Player {
   constructor(engine, recover, name) {
     this.engine = engine;
     this.name = name;
+    this.prefix = `./local/players/${this.name}`;
 
-    const prefix = `./local/players/${this.name}`;
+    const prefix = this.prefix;
     this.watch = fs.watch(`${prefix}/script`, { recursive: true }, (_, file) =>
       fs.readFile(`${prefix}/script/${file}`, (err, data) => {
         if (err) console.log1(`Read script ${err}`);
@@ -25,6 +27,13 @@ class Player {
   }
   runTick(callback) {
     /** create context */
+    const stdout = fs.createWriteStream(`${this.prefix}/stdout.log`),
+      stderr = fs.createWriteStream(`${this.prefix}/stderr.log`);
+    const console = new Console({ stdout, stderr }),
+      consoleLog = console.log;
+    console.log = function () {
+      consoleLog.call(console, Date.now(), ...arguments);
+    };
     const context = { JSON, require, console, _ };
     vm.createContext(context);
 
@@ -33,7 +42,6 @@ class Player {
     setup.reduce(context, this.engine, this);
 
     /** start timer */
-    console.log(`  Running ${this.name}'s code`);
     const startTime = new Date();
 
     /** parse Memory */
@@ -50,8 +58,6 @@ class Player {
     /** stringify Memory */
     this.memory = JSON.stringify(context.Memory);
     fs.writeFileSync(`./local/players/${this.name}/memory.json`, this.memory);
-
-    console.log(`    ${this.name} ran by ${new Date() - startTime}ms`);
 
     callback();
   }

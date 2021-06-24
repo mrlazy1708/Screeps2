@@ -19,18 +19,17 @@
 
 // const ret = spawn.spawnCreep([WORK, CARRY, MOVE], Game.time);
 
-const re = console.log1;
-console.log1 = () => {};
+console.log(Game.time);
 
 _.forEach(Game.spawns, (spawn) => {
   if (_.keys(Game.creeps).length <= 10) {
     let ret;
     ret = spawn.spawnCreep([WORK, CARRY, MOVE], Math.random().toString());
-    console.log1(spawn.name, spawn.store.getUsed(RESOURCE_ENERGY), ret);
-  } else console.log1(`Over populated creeps!`);
+    console.log(spawn.name, spawn.store.getUsed(RESOURCE_ENERGY), ret);
+  } else console.log(`Over populated creeps!`);
 });
 _.forEach(Game.creeps, (creep) => {
-  console.log1(
+  console.log(
     creep.name,
     creep.pos,
     creep.spawning,
@@ -63,9 +62,9 @@ _.forEach(Game.creeps, (creep) => {
     creep.memory.task === "harvest"
       ? creep.harvest(source)
       : creep.upgradeController(controller);
-  console.log1(creep.memory.task, ret1);
+  console.log(creep.memory.task, ret1);
   if (ret1 === ERR_NOT_IN_RANGE)
-    console.log1(
+    console.log(
       `move to`,
       creep.memory.task,
       creep.memory.task === "harvest"
@@ -73,5 +72,3 @@ _.forEach(Game.creeps, (creep) => {
         : creep.moveTo(controller)
     );
 });
-
-console.log1 = re;

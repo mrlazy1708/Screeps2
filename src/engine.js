@@ -133,6 +133,15 @@ class Engine {
     if (room instanceof this.Room)
       return this.RoomTerrain.compress(room.array());
   }
+  getLog(playerName) {
+    const player = this.players[playerName];
+    if (player instanceof Player)
+      return {
+        stdout: fs.readFileSync(`${player.prefix}/stdout.log`).toString(),
+        stderr: fs.readFileSync(`${player.prefix}/stderr.log`).toString(),
+      };
+    return ERR_NOT_FOUND;
+  }
   getScript(playerName) {
     const player = this.players[playerName];
     if (player instanceof Player) return player.script;
