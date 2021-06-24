@@ -7,6 +7,8 @@ let stat = `login`,
   name = undefined,
   pass = undefined;
 
+console.log(19999);
+
 function initMonitor() {
   {
     const upperMonitor = document.createElement(`div`);
@@ -68,50 +70,6 @@ function initMonitor() {
   monitor.appendChild(canvas);
   canvas.style.left = 0.5 * (monitor.offsetWidth - canvas.offsetWidth) + "px";
   canvas.style.top = 0.5 * (monitor.offsetHeight - canvas.offsetHeight) + "px";
-}
-
-function initLogin() {
-  const loginForm = document.createElement(`div`);
-  document.body.appendChild(loginForm);
-  {
-    const labelName = document.createElement(`label`);
-    labelName.textContent = `Name: `;
-    loginForm.appendChild(labelName);
-    {
-      const inputName = document.createElement(`input`);
-      inputName.id = `input-name`;
-      inputName.type = `text`;
-      inputName.style = `display:block`;
-      labelName.appendChild(inputName);
-    }
-  }
-  {
-    const labelPassword = document.createElement(`label`);
-    labelPassword.textContent = `Password: `;
-    loginForm.appendChild(labelPassword);
-    {
-      const inputPassword = document.createElement(`input`);
-      inputPassword.id = `input-password`;
-      inputPassword.type = `password`;
-      inputPassword.style = `display:block`;
-      labelPassword.appendChild(inputPassword);
-    }
-  }
-}
-
-function auth(name, pass, request) {
-  const body = {
-    auth: { name, pass },
-    request: request,
-  };
-  fetch(`http://127.0.0.1:8080/auth`, {
-    method: `POST`,
-    body: JSON.stringify(body),
-  })
-    .then((response) => response.json())
-    .then((json) => {
-      console.log(json, json === `OK`);
-    });
 }
 
 function data(roomName) {

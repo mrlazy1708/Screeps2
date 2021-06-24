@@ -1,4 +1,4 @@
-export function upLowDivlineMove(event) {
+function upLowDivlineMove(event) {
   let mouseDown = true;
   const divline = document.querySelector("#up-low-divline");
   const upBox = document.querySelector("#upper-monitor");
@@ -28,7 +28,7 @@ function clamp(upBox, canvas) {
   canvas.style.top = `${Math.max(Math.min(canvasY, upperY), lowerY)}px`;
 }
 
-export function twoCanvasMove(event) {
+function twoCanvasMove(event) {
   let mouseDown = true;
   const upBox = document.querySelector("#upper-left-monitor");
   const canvas = document.querySelector("#two-canvas");
@@ -46,7 +46,7 @@ export function twoCanvasMove(event) {
   };
 }
 
-export function twoCanvasZoom(event) {
+function twoCanvasZoom(event) {
   const upBox = document.querySelector("#upper-left-monitor");
   const canvas = document.querySelector("#two-canvas");
   const [mouseX, mouseY] = [event.pageX, event.pageY],
@@ -72,7 +72,7 @@ function consoleInput(element, event) {
   }
 }
 
-export function switchWindow(tag) {
+function switchWindow(tag) {
   const consoleInput = document.querySelector("#console-input");
   const consoleWindow = document.querySelector("#console-window");
   const scriptWindow = document.querySelector("#codeEditor");
@@ -89,17 +89,3 @@ export function switchWindow(tag) {
       break;
   }
 }
-
-function initEditor() {
-  editor = ace.edit("codeEditor");
-  theme = "tomorrow_night";
-  language = "javascript";
-  editor.setTheme("ace/theme/" + theme);
-  editor.session.setMode("ace/mode/" + language);
-  editor.setFontSize(12);
-
-  editor.setReadOnly(false);
-  editor.session.setTabSize(2);
-  editor.setShowPrintMargin(false);
-}
-// initEditor();

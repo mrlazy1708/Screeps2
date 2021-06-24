@@ -349,12 +349,8 @@ export class Display {
   }
   refresh(info) {
     this.timeAnchor = new Date();
-    if (info === undefined) {
-      return;
-    }
-    if (this.Terrain.str != info.terrain) {
-      this.totalRefresh = true;
-    }
+    if (info === undefined) return;
+    if (this.Terrain.str != info.terrain) this.totalRefresh = true;
     if (this.totalRefresh) {
       this.refreshCanvas();
 
@@ -369,9 +365,7 @@ export class Display {
   }
   play() {
     this.two.scene.scale = this.canvasElement.offsetWidth / ORIGIN_RES;
-    if (this.totalRefresh) {
-      return;
-    }
+    if (this.totalRefresh) return;
     this.playCreep();
     this.playStructure();
   }

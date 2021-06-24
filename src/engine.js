@@ -126,7 +126,7 @@ class Engine {
   }
   getRoomData(roomName) {
     const room = this.Game.rooms[roomName];
-    if (room instanceof this.Room) return JSON.stringify(room.recover());
+    if (room instanceof this.Room) return room.recover();
   }
   getRoomMap(roomName) {
     const room = this.Game.rooms[roomName];
