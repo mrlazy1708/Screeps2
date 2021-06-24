@@ -1,4 +1,8 @@
 .DS_Store
+
+stdout.log
+stderr.log
+
 node_modules/
 note.md
 ofdoc.md
