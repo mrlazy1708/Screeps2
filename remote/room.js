@@ -2,7 +2,8 @@
 
 import { Display } from "./display.js";
 
-const name = `Alice`;
+const name = `Alice`,
+  roomName = `W0N0`;
 
 /** init two canvas */
 {
@@ -20,6 +21,7 @@ const name = `Alice`;
   monitor.appendChild(canvas);
 }
 
+let script0;
 /** init script editor */
 {
   const editor = ace.edit("codeEditor");
@@ -31,18 +33,19 @@ const name = `Alice`;
   editor.setReadOnly(false);
   editor.session.setTabSize(2);
   editor.setShowPrintMargin(false);
+  data(`getScript`, {}, (json) => editor.setValue((script0 = json)));
 }
 
 const REFRESH_INTERVAL = 16;
 const display = new Display();
 setInterval(() => display.play(), REFRESH_INTERVAL);
 
-function data(request, callback) {
-  const body = { auth: { name }, request, roomName: `W0N0` },
+function data(request, opts, callback = () => {}) {
+  const body = { auth: { name }, request },
     chunks = window.location.href.split(`/`);
   fetch(`http://127.0.0.1:8080/data`, {
     method: `POST`,
-    body: JSON.stringify(body),
+    body: JSON.stringify(Object.assign(body, opts)),
   })
     .then((response) => response.json())
     .then((json) => {
@@ -63,7 +66,13 @@ function log(info) {
 
 const REQUEST_INTERVAL = 1000;
 setInterval(
-  () => data(`getRoomData`, display.refresh.bind(display)),
+  () => data(`getRoomData`, { roomName }, display.refresh.bind(display)),
   REQUEST_INTERVAL
 );
-setInterval(() => data(`getLog`, (json) => log(json)), REQUEST_INTERVAL);
+setInterval(() => data(`getLog`, {}, (json) => log(json)), REQUEST_INTERVAL);
+
+const AUTOSAVE_INTERVAL = 5000;
+setInterval(() => {
+  const script = ace.edit("codeEditor").getValue();
+  if (script !== script0) data(`setScript`, { script }, () => {});
+}, AUTOSAVE_INTERVAL);

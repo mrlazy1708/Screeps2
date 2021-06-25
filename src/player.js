@@ -21,7 +21,7 @@ class Player {
         else this.script = data.toString();
       })
     );
-    this.script = fs.readFileSync(`${prefix}/script/main.js`);
+    this.script = fs.readFileSync(`${prefix}/script/main.js`).toString();
 
     this.memory = fs.readFileSync(`${prefix}/memory.json`, { flag: `a+` });
   }
