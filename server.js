@@ -51,7 +51,7 @@ const server = http
       case `/`:
         console.log1(`root`);
         response.writeHead(200, { "content-Type": "text/html" });
-        fs.createReadStream(`./remote/index.html`).pipe(response);
+        fs.createReadStream(`./remote/room.html`).pipe(response);
         break;
 
       /** virtual url for identification */
@@ -121,6 +121,7 @@ const server = http
   .listen(8080);
 
 console.log(`Server running at http://127.0.0.1:8080/`);
+console.log(engine.Game.rooms);
 console.log1 = console.log;
 console.log = () => {};
 

@@ -7,6 +7,7 @@ const SOURCE_LIGHT_COLOR = "#f6e07b";
 const CONTROLLER_COLOR = "#66ccff";
 const CREEP_COLOR = "#ffffff";
 const SPAWN_COLOR = "#b22222";
+const WHITE = "#ffffff";
 const X_SIZE = 64;
 const Y_SIZE = 64;
 const QUEST_INTERVAL = 1000;
@@ -17,10 +18,145 @@ const BLOCK_SIZE = ORIGIN_RES / X_SIZE;
 const MAP_SIZE_X = BLOCK_SIZE * X_SIZE;
 const MAP_SIZE_Y = BLOCK_SIZE * Y_SIZE;
 
-export class Display {
+class Source {
+  constructor(canvas, info, two) {
+    this.layer = new Array();
+    this.structureType = "Source";
+    this.layer.push(
+      new Two.RoundedRectangle(
+        info.pos[0] * BLOCK_SIZE + BLOCK_SIZE / 2,
+        info.pos[1] * BLOCK_SIZE + BLOCK_SIZE / 2,
+        0.8 * BLOCK_SIZE,
+        0.8 * BLOCK_SIZE,
+        0.15 * BLOCK_SIZE
+      )
+    );
+    this.layer[0].fill = SOURCE_COLOR;
+    this.layer[0].noStroke();
+    canvas.add(this.layer[0]);
+    this.layer.push(
+      new Two.Circle(
+        info.pos[0] * BLOCK_SIZE + BLOCK_SIZE / 2,
+        info.pos[1] * BLOCK_SIZE + BLOCK_SIZE / 2,
+        BLOCK_SIZE * 5
+      )
+    );
+    this.layer[1].fill = two.makeRadialGradient(
+      0,
+      0,
+      BLOCK_SIZE * 5,
+      new Two.Stop(0, SOURCE_LIGHT_COLOR, 0.25),
+      new Two.Stop(0.9, SOURCE_LIGHT_COLOR, 0)
+    );
+    this.layer[1].noStroke();
+    canvas.add(this.layer[1]);
+  }
+  delLayer(canvas) {
+    for (let layer of this.layer) {
+      canvas.remove(layer);
+    }
+  }
+  play() {
+    this.layer[1].opacity = Math.abs(
+      (new Date() % SOURCE_SHINE_INTERVAL) / SOURCE_SHINE_INTERVAL - 0.5
+    );
+  }
+}
+
+class Controller {
+  constructor(canvas, info) {
+    this.layer = new Array();
+    this.structureType = "Controller";
+    this.layer.push(
+      new Two.Polygon(
+        info.pos[0] * BLOCK_SIZE + BLOCK_SIZE / 2,
+        info.pos[1] * BLOCK_SIZE + BLOCK_SIZE / 2,
+        0.6 * BLOCK_SIZE,
+        8
+      )
+    );
+    this.layer[0].fill = CONTROLLER_COLOR;
+    this.layer[0].noStroke();
+    canvas.add(this.layer[0]);
+  }
+  delLayer(canvas) {
+    for (let layer of this.layer) {
+      canvas.remove(layer);
+    }
+  }
+}
+
+class Spawn {
+  constructor(canvas, info) {
+    this.layer = new Array();
+    this.structureType = "Spawn";
+    this.layer.push(
+      new Two.Circle(
+        info.pos[0] * BLOCK_SIZE + BLOCK_SIZE / 2,
+        info.pos[1] * BLOCK_SIZE + BLOCK_SIZE / 2,
+        0.6 * BLOCK_SIZE
+      )
+    );
+    this.layer[0].fill = SPAWN_COLOR;
+    this.layer[0].noStroke();
+    canvas.add(this.layer[0]);
+  }
+  delLayer(canvas) {
+    for (let layer of this.layer) {
+      canvas.remove(layer);
+    }
+  }
+}
+
+class Creep {
+  constructor(canvas, info) {
+    this.layer = new Array();
+    this.layer.push(
+      new Two.Circle(
+        info.pos[0] * BLOCK_SIZE + BLOCK_SIZE / 2,
+        info.pos[1] * BLOCK_SIZE + BLOCK_SIZE / 2,
+        0.5 * BLOCK_SIZE
+      )
+    );
+    this.layer[0].fill = CREEP_COLOR;
+    this.layer[0].noStroke();
+    canvas.add(this.layer[0]);
+    this.nextPos = [
+      info.pos[0] * BLOCK_SIZE + BLOCK_SIZE / 2,
+      info.pos[1] * BLOCK_SIZE + BLOCK_SIZE / 2,
+    ];
+    this.deltaPos = [0, 0];
+  }
+  refreshPos(info) {
+    this.layer[0].translation.set(this.nextPos[0], this.nextPos[1]);
+    this.deltaPos = [
+      info.pos[0] * BLOCK_SIZE + BLOCK_SIZE / 2 - this.nextPos[0],
+      info.pos[1] * BLOCK_SIZE + BLOCK_SIZE / 2 - this.nextPos[1],
+    ];
+    this.nextPos = [
+      info.pos[0] * BLOCK_SIZE + BLOCK_SIZE / 2,
+      info.pos[1] * BLOCK_SIZE + BLOCK_SIZE / 2,
+    ];
+  }
+  delLayer(canvas) {
+    for (let layer of this.layer) {
+      canvas.remove(layer);
+    }
+  }
+  play(t) {
+    const ratio = 1 / (1 + Math.exp((0.5 - t) * 10));
+    this.layer[0].translation.set(
+      this.nextPos[0] - ratio * this.deltaPos[0],
+      this.nextPos[1] - ratio * this.deltaPos[1]
+    );
+  }
+}
+
+export class RoomMap {
   constructor() {
     this.totalRefresh = true;
     this.timeAnchor = new Date();
+    this.infoColumnElement = document.querySelector("#upper-right-monitor");
     this.canvasElement = document.querySelector("#two-canvas");
     this.two = new Two({
       height: ORIGIN_RES,
@@ -30,28 +166,49 @@ export class Display {
     this.two.scene.scale = this.canvasElement.offsetWidth / ORIGIN_RES;
 
     this.Terrain = new Object();
-    this.Structure = new Object();
-    this.Creep = new Object();
+    this.Structures = new Object();
+    this.Creeps = new Object();
+    this.Selector = new Object();
 
     this.two.update();
+  }
+  initSelectorLayer() {
+    this.Selector.pos = new Two.Rectangle(
+      0 * BLOCK_SIZE + BLOCK_SIZE / 2,
+      0 * BLOCK_SIZE + BLOCK_SIZE / 2,
+      BLOCK_SIZE,
+      BLOCK_SIZE
+    );
+    this.Selector.pos.noStroke();
+    this.Selector.pos.fill = WHITE;
+    this.Selector.pos.opacity = 0.1;
+    this.Selector.group.add(this.Selector.pos);
+
+    this.Selector.info = new Array(X_SIZE).fill(new Array(Y_SIZE));
   }
   refreshCanvas() {
     if (this.Terrain.group != undefined) {
       this.Terrain.group.remove();
     }
-    if (this.Structure.group != undefined) {
-      this.Structure.group.remove();
+    if (this.Structures.group != undefined) {
+      this.Structures.group.remove();
     }
-    if (this.Creep.group != undefined) {
-      this.Creep.group.remove();
+    if (this.Creeps.group != undefined) {
+      this.Creeps.group.remove();
+    }
+    if (this.Selector.group != undefined) {
+      this.Creeps.group.remove();
     }
 
     this.Terrain.group = new Two.Group().addTo(this.two.scene);
-    this.Structure.group = new Two.Group().addTo(this.two.scene);
-    this.Creep.group = new Two.Group().addTo(this.two.scene);
+    this.Structures.group = new Two.Group().addTo(this.two.scene);
+    this.Creeps.group = new Two.Group().addTo(this.two.scene);
+    this.Selector.group = new Two.Group().addTo(this.two.scene);
 
-    this.Creep.map = new Map();
-    this.Structure.map = new Map();
+    this.Creeps.map = new Map();
+    this.Structures.map = new Map();
+
+    this.initSelectorLayer();
   }
   refreshTerrain(info) {
     this.Terrain.str = info.terrain;
@@ -154,197 +311,109 @@ export class Display {
     this.Terrain.group.add(mask);
     this.Terrain.group.mask = mask;
   }
-  newSource(info) {
-    let source = new Object();
-    source.layer = new Array();
-    source.layer.push(
-      new Two.RoundedRectangle(
-        info.pos[0] * BLOCK_SIZE + BLOCK_SIZE / 2,
-        info.pos[1] * BLOCK_SIZE + BLOCK_SIZE / 2,
-        0.8 * BLOCK_SIZE,
-        0.8 * BLOCK_SIZE,
-        0.15 * BLOCK_SIZE
-      )
-    );
-    source.layer[0].fill = SOURCE_COLOR;
-    source.layer[0].noStroke();
-    this.Structure.group.add(source.layer[0]);
-    source.layer.push(
-      new Two.Circle(
-        info.pos[0] * BLOCK_SIZE + BLOCK_SIZE / 2,
-        info.pos[1] * BLOCK_SIZE + BLOCK_SIZE / 2,
-        BLOCK_SIZE * 5
-      )
-    );
-    source.layer[1].fill = this.two.makeRadialGradient(
-      0,
-      0,
-      BLOCK_SIZE * 5,
-      new Two.Stop(0, SOURCE_LIGHT_COLOR, 0.25),
-      new Two.Stop(0.9, SOURCE_LIGHT_COLOR, 0)
-    );
-    source.layer[1].noStroke();
-    this.Structure.group.add(source.layer[1]);
-    return source;
-  }
-  newController(info) {
-    let controller = new Object();
-    controller.layer = new Array();
-    controller.layer.push(
-      new Two.Polygon(
-        info.pos[0] * BLOCK_SIZE + BLOCK_SIZE / 2,
-        info.pos[1] * BLOCK_SIZE + BLOCK_SIZE / 2,
-        0.6 * BLOCK_SIZE,
-        8
-      )
-    );
-    controller.layer[0].fill = CONTROLLER_COLOR;
-    controller.layer[0].noStroke();
-    this.Structure.group.add(controller.layer[0]);
-    return controller;
-  }
-  newSpawn(info) {
-    let spawn = new Object();
-    spawn.layer = new Array();
-    spawn.layer.push(
-      new Two.Circle(
-        info.pos[0] * BLOCK_SIZE + BLOCK_SIZE / 2,
-        info.pos[1] * BLOCK_SIZE + BLOCK_SIZE / 2,
-        0.6 * BLOCK_SIZE
-      )
-    );
-    spawn.layer[0].fill = SPAWN_COLOR;
-    spawn.layer[0].noStroke();
-    this.Structure.group.add(spawn.layer[0]);
-    return spawn;
-  }
 
   refreshStructure(info) {
     let structure;
     for (let str in info.structures) {
       switch (info.structures[str].structureType) {
         case "Source":
-          if (this.Structure.map.has(str)) {
-            let structure = this.Structure.map.get(str);
+          if (this.Structures.map.has(str)) {
+            let structure = this.Structures.map.get(str);
             structure.live = true;
           } else {
-            structure = this.newSource(info.structures[str]);
-            this.Structure.map.set(str, structure);
-            structure.structureType = "Source";
+            structure = new Source(
+              this.Structures.group,
+              info.structures[str],
+              this.two
+            );
+            this.Structures.map.set(str, structure);
             structure.live = true;
           }
           break;
         case "Controller":
-          if (this.Structure.map.has(str)) {
-            let structure = this.Structure.map.get(str);
+          if (this.Structures.map.has(str)) {
+            let structure = this.Structures.map.get(str);
             structure.live = true;
           } else {
-            structure = this.newController(info.structures[str]);
-            this.Structure.map.set(str, structure);
-            structure.structureType = "Controller";
+            structure = new Controller(
+              this.Structures.group,
+              info.structures[str]
+            );
+            this.Structures.map.set(str, structure);
             structure.live = true;
           }
           break;
         case "Spawn":
-          if (this.Structure.map.has(str)) {
-            let structure = this.Structure.map.get(str);
+          if (this.Structures.map.has(str)) {
+            let structure = this.Structures.map.get(str);
             structure.live = true;
           } else {
-            structure = this.newSpawn(info.structures[str]);
-            this.Structure.map.set(str, structure);
-            structure.structureType = "Spawn";
+            structure = new Spawn(this.Structures.group, info.structures[str]);
+            this.Structures.map.set(str, structure);
             structure.live = true;
           }
           break;
       }
     }
-    for (let strPair of this.Structure.map) {
+    for (let strPair of this.Structures.map) {
       if (strPair[1].live === false) {
-        for (let layer of strPair[1].layer) {
-          this.Structure.group.remove(layer);
-        }
-        this.Structure.delete(strPair[0]);
+        strPair[1].delLayer(this.Structures.group);
+        this.Structures.map.delete(strPair[0]);
       } else {
         strPair[1].live = false;
-      }
-    }
-  }
-  newCreep(info) {
-    let creep = new Object();
-    creep.layer = new Array();
-    creep.layer.push(
-      new Two.Circle(
-        info.pos[0] * BLOCK_SIZE + BLOCK_SIZE / 2,
-        info.pos[1] * BLOCK_SIZE + BLOCK_SIZE / 2,
-        0.5 * BLOCK_SIZE
-      )
-    );
-    creep.layer[0].fill = CREEP_COLOR;
-    creep.layer[0].noStroke();
-    this.Creep.group.add(creep.layer[0]);
-    creep.nextPos = [
-      info.pos[0] * BLOCK_SIZE + BLOCK_SIZE / 2,
-      info.pos[1] * BLOCK_SIZE + BLOCK_SIZE / 2,
-    ];
-    creep.deltaPos = [0, 0];
-    return creep;
-  }
-  playCreep() {
-    let t = 1 - (new Date() - this.timeAnchor) / 1000;
-    for (let creep of this.Creep.map.values()) {
-      const ratio = 1 / (1 + Math.exp((0.5 - t) * 10));
-      creep.layer[0].translation.set(
-        creep.nextPos[0] - ratio * creep.deltaPos[0],
-        creep.nextPos[1] - ratio * creep.deltaPos[1]
-      );
-    }
-  }
-  playStructure() {
-    let t = Math.abs(
-      (new Date() % SOURCE_SHINE_INTERVAL) / SOURCE_SHINE_INTERVAL - 0.5
-    );
-    for (let structure of this.Structure.map.values()) {
-      switch (structure.structureType) {
-        case "Source":
-          structure.layer[1].opacity = t;
-          break;
       }
     }
   }
   refreshCreep(info) {
     let creep;
     for (let crp in info.creeps) {
-      if (this.Creep.map.has(info.creeps[crp].id)) {
-        creep = this.Creep.map.get(info.creeps[crp].id);
-        creep.layer[0].translation.set(creep.nextPos[0], creep.nextPos[1]);
-        creep.deltaPos = [
-          info.creeps[crp].pos[0] * BLOCK_SIZE +
-            BLOCK_SIZE / 2 -
-            creep.nextPos[0],
-          info.creeps[crp].pos[1] * BLOCK_SIZE +
-            BLOCK_SIZE / 2 -
-            creep.nextPos[1],
-        ];
-        creep.nextPos = [
-          info.creeps[crp].pos[0] * BLOCK_SIZE + BLOCK_SIZE / 2,
-          info.creeps[crp].pos[1] * BLOCK_SIZE + BLOCK_SIZE / 2,
-        ];
+      if (this.Creeps.map.has(info.creeps[crp].id)) {
+        creep = this.Creeps.map.get(info.creeps[crp].id);
+        creep.refreshPos(info.creeps[crp]);
         creep.live = true;
       } else {
-        creep = this.newCreep(info.creeps[crp]);
-        this.Creep.map.set(info.creeps[crp].id, creep);
+        creep = new Creep(this.Creeps.group, info.creeps[crp]);
+        this.Creeps.map.set(info.creeps[crp].id, creep);
         creep.live = true;
       }
     }
-    for (let crpPair of this.Creep.map) {
+    for (let crpPair of this.Creeps.map) {
       if (crpPair[1].live === false) {
-        for (let layer of crpPair[1].layer) {
-          this.Creep.group.remove(layer);
-        }
-        this.Creep.map.delete(crpPair[0]);
+        crpPair[1].delLayer(this.Creeps.group);
+        this.Creeps.map.delete(crpPair[0]);
       } else {
         crpPair[1].live = false;
       }
+    }
+  }
+  refreshSelector(info) {
+    const terrain = _.map(info.terrain.split(`,`), (r) => r.split(``));
+    for (let i = 0; i != X_SIZE; i++) {
+      for (let j = 0; j != Y_SIZE; j++) {
+        this.Selector.info[i][j] = new Object();
+        this.Selector.info[i][j].x = i;
+        this.Selector.info[i][j].y = j;
+        switch (terrain[i][j]) {
+          case "X":
+            this.Selector.info[i][j].terrain = "Wall";
+            break;
+          case "~":
+            this.Selector.info[i][j].terrain = "Swamp";
+            break;
+          case " ":
+            this.Selector.info[i][j].terrain = "Ground";
+            break;
+        }
+      }
+    }
+    for (let str in info.structures) {
+      this.Selector.info[info.structures[str].pos[0]][
+        info.structures[str].pos[1]
+      ] = info.structures[str];
+    }
+    for (let crp in info.creeps) {
+      this.Selector.info[info.creeps[crp].pos[0]][info.creeps[crp].pos[1]] =
+        info.creeps[crp];
     }
   }
   refresh(info) {
@@ -357,16 +426,39 @@ export class Display {
       this.refreshTerrain(info);
       this.refreshStructure(info);
       this.refreshCreep(info);
+      this.refreshSelector(info);
       this.totalRefresh = false;
     } else {
       this.refreshCreep(info);
       this.refreshStructure(info);
+      this.refreshSelector(info);
     }
   }
   play() {
     this.two.scene.scale = this.canvasElement.offsetWidth / ORIGIN_RES;
     if (this.totalRefresh) return;
-    this.playCreep();
-    this.playStructure();
+    let t = 1 - (new Date() - this.timeAnchor) / 1000;
+    for (let creep of this.Creeps.map.values()) {
+      creep.play(t);
+    }
+    for (let structure of this.Structures.map.values()) {
+      switch (structure.structureType) {
+        case "Source":
+          structure.play();
+          break;
+      }
+    }
+  }
+  mouseSelector(x, y) {
+    this.Selector.x = Math.min(Math.max(0, Math.floor(x * X_SIZE)), X_SIZE - 1);
+    this.Selector.y = Math.min(Math.max(0, Math.floor(y * Y_SIZE)), Y_SIZE - 1);
+    if (this.totalRefresh === true) return;
+    this.infoColumnElement.innerHTML = JSON.stringify(
+      this.Selector.info[this.Selector.x][this.Selector.y]
+    );
+    this.Selector.pos.translation.set(
+      this.Selector.x * BLOCK_SIZE + BLOCK_SIZE / 2,
+      this.Selector.y * BLOCK_SIZE + BLOCK_SIZE / 2
+    );
   }
 }

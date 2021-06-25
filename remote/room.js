@@ -1,11 +1,11 @@
 `use strict`;
 
-import { Display } from "./display.js";
+import { RoomMap } from "./display.js";
 
 const name = `Alice`,
   roomName = `W0N0`;
 
-/** init two canvas */
+/** init two-canvas */
 {
   const monitor = document.querySelector("#upper-left-monitor"),
     canvas = document.createElement(`div`);
@@ -14,9 +14,9 @@ const name = `Alice`,
   canvas.style.width = `${size}px`;
   canvas.style.height = `${size}px`;
   canvas.style.backgroundColor = "#2b2b2b";
-  const left = 0.5 * (monitor.offsetWidth - canvas.offsetWidth);
+  const left = 0.5 * (monitor.offsetWidth - size);
   canvas.style.left = `${left}px`;
-  const top = 0.5 * (monitor.offsetHeight - canvas.offsetHeight);
+  const top = 0.5 * (monitor.offsetHeight - size);
   canvas.style.top = `${top}px`;
   monitor.appendChild(canvas);
 }
@@ -37,8 +37,18 @@ let script0;
 }
 
 const REFRESH_INTERVAL = 16;
-const display = new Display();
-setInterval(() => display.play(), REFRESH_INTERVAL);
+const roomMap = new RoomMap();
+setInterval(() => roomMap.play(), REFRESH_INTERVAL);
+
+{
+  const canvas = document.querySelector("#two-canvas");
+  canvas.onmousemove = function (event) {
+    roomMap.mouseSelector(
+      (event.pageX - canvas.offsetLeft) / canvas.offsetWidth,
+      (event.pageY - canvas.offsetTop) / canvas.offsetHeight
+    );
+  };
+}
 
 function data(request, opts, callback = () => {}) {
   const body = { auth: { name }, request },
@@ -66,7 +76,7 @@ function log(info) {
 
 const REQUEST_INTERVAL = 1000;
 setInterval(
-  () => data(`getRoomData`, { roomName }, display.refresh.bind(display)),
+  () => data(`getRoomData`, { roomName }, roomMap.refresh.bind(roomMap)),
   REQUEST_INTERVAL
 );
 setInterval(() => data(`getLog`, {}, (json) => log(json)), REQUEST_INTERVAL);

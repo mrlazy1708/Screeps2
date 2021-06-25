@@ -14,40 +14,56 @@
 
 <body>
   <div id="upper-monitor">
-    <div id="upper-left-monitor" onmousedown="twoCanvasMove(event);" onmousewheel="twoCanvasZoom(event);"></div>
+    <div
+      id="upper-left-monitor"
+      onmousedown="twoCanvasMove(event);"
+      onmousewheel="twoCanvasZoom(event);"
+    ></div>
     <div id="upper-right-monitor"></div>
   </div>
   <div id="lower-monitor">
     <div id="console-menu">
-      <div class="console-menu-tag" id="console-tag" onmouseover="style.backgroundColor='#666666';"
-        onmouseout="style.backgroundColor='#424242';" onmousedown="switchWindow('script');">
+      <div
+        class="console-menu-tag"
+        id="console-tag"
+        onmouseover="style.backgroundColor='#666666';"
+        onmouseout="style.backgroundColor='#424242';"
+        onmousedown="switchWindow('script');"
+      >
         Script
       </div>
-      <div class="console-menu-tag" id="script-tag" onmouseover="style.backgroundColor='#666666';"
-        onmouseout="style.backgroundColor='#424242';" onmousedown="switchWindow('console');">
+      <div
+        class="console-menu-tag"
+        id="script-tag"
+        onmouseover="style.backgroundColor='#666666';"
+        onmouseout="style.backgroundColor='#424242';"
+        onmousedown="switchWindow('console');"
+      >
         Console
       </div>
     </div>
     <div id="console-window">
       <div id="console-output"></div>
       <div id="console-input-box">
-        <input id="console-input" value="> " onkeydown="consoleInput(this,event);" autocomplete="off" />
+        <input
+          id="console-input"
+          value="> "
+          onkeydown="consoleInput(this,event);"
+          autocomplete="off"
+        />
       </div>
     </div>
     <div id="script-window">
-      <pre id="codeEditor" class="ace_editor" style="
-          position: absolute;
-          z-index: 2;
-          width: 100%;
-          top: 25px;
-          bottom: 0px;
-          margin: 0;
-          padding: 5px 10px;
-          background-color: #2b2b2b;
-          display: none;
-        "><s:textarea class="ace_text-input"/></pre>
+      <pre
+        id="codeEditor"
+        class="ace_editor"
+      ><s:textarea class="ace_text-input"/></pre>
     </div>
   </div>
-  <div id="up-low-divline" onmouseover="style.opacity='0.3';" onmouseout="style.opacity='0';"
-    onmousedown="upLowDivlineMove(event);"></div>
+  <div
+    id="up-low-divline"
+    onmouseover="style.opacity='0.3';"
+    onmouseout="style.opacity='0';"
+    onmousedown="upLowDivlineMove(event);"
+  ></div>
 </body>

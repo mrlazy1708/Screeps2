@@ -1,6 +1,6 @@
 "use strict";
 
-import { Display } from "./display.js";
+import { RoomMap } from "./display.js";
 import { twoCanvasMove, twoCanvasZoom, switchWindow } from "./monitor.js";
 
 let stat = `login`,
