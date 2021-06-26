@@ -1014,6 +1014,10 @@ function create(context, engine, player) {
       if (!_.every(_.tail(objects), `walkable`)) return ERR_NO_PATH;
       if (player.god) {
         this.head = dir;
+        const weight =
+          this.getActiveBodyparts() -
+          Math.floor(this.store.getFree() / CARRY_CAPACITY);
+        this.fatigue += MOVE_COST[_.head(objects)] * weight;
         this.pos = new context.RoomPosition(pos);
       } else {
         player.schedule(this, [`move`, [dir]], true);
