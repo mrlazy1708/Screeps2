@@ -162,6 +162,14 @@ class Creep {
   }
 }
 
+class Selector {
+  // feature request
+  // not urgent
+  // - refresh selector info both onmousemove and on room data refresh
+  // - drop selector if cursor is out of bound (instead of stucking at the edge)
+  constructor() {}
+}
+
 export class RoomMap {
   constructor() {
     this.totalRefresh = true;
@@ -179,6 +187,13 @@ export class RoomMap {
     this.Structures = new Object();
     this.Creeps = new Object();
     this.Selector = new Object();
+
+    const canvas = document.querySelector("#two-canvas");
+    canvas.onmousemove = (event) => {
+      const x01 = (event.pageX - canvas.offsetLeft) / canvas.offsetWidth,
+        y01 = (event.pageY - canvas.offsetTop) / canvas.offsetHeight;
+      this.mouseSelector(x01, y01);
+    };
 
     this.two.update();
   }
@@ -212,7 +227,7 @@ export class RoomMap {
       this.Creeps.group.remove();
     }
     if (this.Selector.group != undefined) {
-      this.Creeps.group.remove();
+      this.Selector.group.remove();
     }
 
     this.Terrain.group = new Two.Group().addTo(this.two.scene);
@@ -502,7 +517,7 @@ export class ShardMap {
     this.two.scene.scale = this.canvasElement.offsetWidth / ORIGIN_RES;
 
     this.Terrain = new Object();
-    this.Selector = new Object();
+    this.Selector = new Object({ info: {} });
 
     this.Terrain.group = new Two.Group().addTo(this.two.scene);
     this.Selector.group = new Two.Group().addTo(this.two.scene);
@@ -521,6 +536,13 @@ export class ShardMap {
     this.Selector.pos.fill = WHITE;
     this.Selector.pos.opacity = 0.1;
     this.Selector.group.add(this.Selector.pos);
+
+    const canvas = document.querySelector("#two-canvas");
+    canvas.onmousemove = (event) => {
+      const x01 = (event.pageX - canvas.offsetLeft) / canvas.offsetWidth,
+        y01 = (event.pageY - canvas.offsetTop) / canvas.offsetHeight;
+      this.mouseSelector(x01, y01);
+    };
 
     this.two.update();
   }

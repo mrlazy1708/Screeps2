@@ -40,8 +40,8 @@ const server = http
       }
       console.log1(ERR_NOT_FOUND);
     }
-    function responseWith(data, Location = null) {
-      response.writeHead(200, { "content-Type": "text/plain", Location });
+    function responseWith(data) {
+      response.writeHead(200, { "content-Type": "text/plain" });
       response.write(JSON.stringify(data));
       response.end();
     }
@@ -70,7 +70,7 @@ const server = http
               if (pass[auth.name] === undefined) responseWith(ERR_NOT_FOUND);
               else stat[auth.name] = auth.pass === pass[auth.name];
               if (stat[auth.name] === false) responseWith(ERR_NOT_OWNER);
-              if (stat[auth.name] === true) responseWith(OK, `/room`);
+              if (stat[auth.name] === true) responseWith(OK);
             }
             if (data.request === "register") {
               if (pass[auth.name] !== undefined) responseWith(ERR_NAME_EXISTS);
@@ -94,21 +94,21 @@ const server = http
           try {
             const data = JSON.parse(chunk.toString()),
               auth = data.auth;
-            if (stat[auth.name] === undefined)
-              responseWith(ERR_NOT_FOUND, `/login`);
-            if (stat[auth.name] === false)
-              responseWith(ERR_NOT_AVAILABLE, `/login`);
+            if (stat[auth.name] === undefined) responseWith(ERR_NOT_FOUND);
+            if (stat[auth.name] === false) responseWith(ERR_NOT_AVAILABLE);
             if (stat[auth.name] === true) {
-              if (data.request === "getRoomData")
-                responseWith(engine.getRoomData(data.roomName));
-              if (data.request === "getRoomMap")
-                responseWith(engine.getRoomMap(data.roomName));
-              if (data.request === `getLog`)
-                responseWith(engine.getLog(auth.name));
-              if (data.request === `getScript`)
-                responseWith(engine.getScript(auth.name));
-              if (data.request === `setScript`)
-                responseWith(engine.setScript(auth.name, data.script));
+              if (pass[auth.name] === auth.pass) {
+                if (data.request === "getRoomData")
+                  responseWith(engine.getRoomData(data.roomName));
+                if (data.request === "getRoomMap")
+                  responseWith(engine.getRoomMap(data.roomName));
+                if (data.request === `getLog`)
+                  responseWith(engine.getLog(auth.name));
+                if (data.request === `getScript`)
+                  responseWith(engine.getScript(auth.name));
+                if (data.request === `setScript`)
+                  responseWith(engine.setScript(auth.name, data.script));
+              } else responseWith(ERR_NOT_OWNER);
             }
           } catch (err) {
             console.log1(err);

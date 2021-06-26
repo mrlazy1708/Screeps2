@@ -2,18 +2,21 @@
 
 function auth(name, pass, request) {
   const auth = { name, pass },
-    chunks = window.location.href.split(`/`);
+    origin = `${window.location.protocol}//${window.location.host}`;
 
-  fetch(`${_.initial(chunks).join(`/`)}/auth`, {
+  fetch(`${origin}/auth`, {
     method: `POST`,
     body: JSON.stringify({ auth, request }),
   })
     .then((response) => response.json())
     .then((json) => {
       console.log(json);
-      if (json === `OK`)
-        window.location.replace(`${_.initial(chunks).join(`/`)}/room`);
-      return json;
+      if (json === `OK`) {
+        window.sessionStorage.setItem(`name`, name);
+        window.sessionStorage.setItem(`pass`, pass);
+        const prevUrl = window.sessionStorage.getItem(`prev`);
+        window.location.replace(prevUrl || origin);
+      } else return json;
     })
     .catch((err) => console.log(err));
 }

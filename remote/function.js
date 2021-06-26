@@ -61,13 +61,13 @@ function twoCanvasZoom(event) {
   clamp(upBox, canvas);
 }
 
-const output = document.querySelector(`#console-output`);
-const lines = [...output.children];
-let cnt = lines.length;
 function consoleOutput(stamp, message) {
-  const line = document.createElement(`div`);
+  const output = document.querySelector(`#console-output`),
+    lines = [...output.children],
+    line = document.createElement(`div`),
+    index = new Date().toJSON();
   line.className = `console-output-line`;
-  line.id = `console-output-line-${cnt}`;
+  line.id = `console-output-line-${index}`;
   output.appendChild(line), lines.push(line);
   if (lines.length > 100) {
     const overflow = lines.shift();
@@ -76,16 +76,15 @@ function consoleOutput(stamp, message) {
   {
     const lineStamp = document.createElement(`div`);
     lineStamp.className = `console-output-line-stamp`;
-    lineStamp.id = `console-output-line-stamp-${cnt}`;
+    lineStamp.id = `console-output-line-stamp-${index}`;
     lineStamp.textContent = stamp;
     line.appendChild(lineStamp);
     const lineMessage = document.createElement(`div`);
     lineMessage.className = `console-output-line-message`;
-    lineMessage.id = `console-output-line-stamp-${cnt}`;
+    lineMessage.id = `console-output-line-stamp-${index}`;
     lineMessage.textContent = message;
     line.appendChild(lineMessage);
   }
-  cnt++;
 }
 
 function consoleInput(element, event) {
@@ -113,4 +112,51 @@ function switchWindow(tag) {
       scriptWindow.style.display = "none";
       break;
   }
+}
+
+function initMonitor() {
+  const monitor = document.querySelector("#upper-left-monitor"),
+    canvas = document.createElement(`div`);
+  canvas.id = `two-canvas`;
+  const size = 0.8 * Math.min(monitor.offsetWidth, monitor.offsetHeight);
+  canvas.style.width = `${size}px`;
+  canvas.style.height = `${size}px`;
+  canvas.style.backgroundColor = "#2b2b2b";
+  const left = 0.5 * (monitor.offsetWidth - size);
+  canvas.style.left = `${left}px`;
+  const top = 0.5 * (monitor.offsetHeight - size);
+  canvas.style.top = `${top}px`;
+  monitor.appendChild(canvas);
+}
+
+function initEditor() {
+  const editor = ace.edit("codeEditor");
+  const theme = "tomorrow_night";
+  const language = "javascript";
+  editor.setTheme("ace/theme/" + theme);
+  editor.session.setMode("ace/mode/" + language);
+  editor.setFontSize(12);
+  editor.setReadOnly(false);
+  editor.session.setTabSize(2);
+  editor.setShowPrintMargin(false);
+  data(`getScript`, {}, (json) => editor.setValue(json));
+}
+
+function data(request, opts, callback = () => {}) {
+  const name = window.sessionStorage.getItem(`name`) || ``,
+    pass = window.sessionStorage.getItem(`pass`) || ``,
+    body = { auth: { name, pass }, request },
+    origin = `${window.location.protocol}//${window.location.host}`;
+  fetch(`${origin}/data`, {
+    method: `POST`,
+    body: JSON.stringify(Object.assign(body, opts)),
+  })
+    .then((response) => response.json())
+    .then((json) => {
+      if (json === `Error: Not Available` || json === `Error: Not Found`) {
+        window.sessionStorage.setItem(`prev`, window.location.href);
+        window.location.replace(`${origin}/login`);
+      } else return json;
+    })
+    .then((json) => callback(json));
 }
