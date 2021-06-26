@@ -9,10 +9,9 @@
   <script src="http://cdn.bootcss.com/ace/1.2.4/ace.js"></script>
   <script src="display.js" type="module"></script>
   <script src="shard.js" type="module"></script>
-  <script src="shard_monitor.js" defer></script>
+  <script src="monitor.js" defer></script>
 </head>
 
-<body
-  onmousedown="twoCanvasMove(event);"
-  onmousewheel="twoCanvasZoom(event);"
-></body>
+<body>
+  <div id="upper-left-monitor" onmousedown="twoCanvasMove(event);" onmousewheel="twoCanvasZoom(event);"></div>
+</body>

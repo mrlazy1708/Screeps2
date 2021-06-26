@@ -18,6 +18,16 @@ canvas {
   display: block;
 }
 
+#upper-left-monitor {
+  position: relative;
+  z-index: 1;
+  float: left;
+  width: 80%;
+  height: 100%;
+  border-width: 0;
+  background-color: #1c1c1c;
+}
+
 #two-canvas {
   position: absolute;
 }

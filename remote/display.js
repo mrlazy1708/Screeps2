@@ -563,12 +563,12 @@ export class ShardMap {
       }
     }
   }
-  play(){
+  play() {
     this.two.scene.scale = this.canvasElement.offsetWidth / ORIGIN_RES;
   }
   mouseSelector(x, y) {
     (x = Math.floor(x * 2 * SHARD_SIZE)), (y = Math.floor(y * 2 * SHARD_SIZE));
-    if (x < 0 || x >= 2 * SHARD_SIZE || y < 0 || y > 2 * SHARD_SIZE)
+    if (x < 0 || x >= 2 * SHARD_SIZE || y < 0 || y >= 2 * SHARD_SIZE)
       this.Selector.inRange = false;
     else this.Selector.inRange = true;
     if (!this.Selector.inRange) return;
