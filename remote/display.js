@@ -184,7 +184,12 @@ export class RoomMap {
     this.Selector.pos.opacity = 0.1;
     this.Selector.group.add(this.Selector.pos);
 
-    this.Selector.info = new Array(X_SIZE).fill(new Array(Y_SIZE));
+    // this.Selector.info = new Array(X_SIZE).fill(new Array(Y_SIZE));
+    // Here is the bug:
+    // Array.fill method will not evaluate new Array(Y_SIZE) every time,
+    // so the info array will have X_SIZE arrays pointing to the same array.
+    // Also, please access 2D array by [y][x], not [x][y].
+    this.Selector.info = _.map(Array(Y_SIZE), () => Array(X_SIZE));
   }
   refreshCanvas() {
     if (this.Terrain.group != undefined) {
@@ -388,33 +393,34 @@ export class RoomMap {
   }
   refreshSelector(info) {
     const terrain = _.map(info.terrain.split(`,`), (r) => r.split(``));
-    for (let i = 0; i != X_SIZE; i++) {
-      for (let j = 0; j != Y_SIZE; j++) {
-        this.Selector.info[i][j] = new Object();
-        this.Selector.info[i][j].x = i;
-        this.Selector.info[i][j].y = j;
-        switch (terrain[i][j]) {
-          case "X":
-            this.Selector.info[i][j].terrain = "Wall";
+    for (let y = 0; y < Y_SIZE; y++) {
+      for (let x = 0; x < X_SIZE; x++) {
+        this.Selector.info[y][x] = { terrain: undefined };
+        switch (terrain[y][x]) {
+          case "x":
+            this.Selector.info[y][x].terrain = "Wall";
             break;
           case "~":
-            this.Selector.info[i][j].terrain = "Swamp";
+            this.Selector.info[y][x].terrain = "Swamp";
             break;
           case " ":
-            this.Selector.info[i][j].terrain = "Ground";
+            this.Selector.info[y][x].terrain = "Plain";
             break;
+          default:
+            throw new Error(`Undefined terrain ${terrain[y][x]}!`);
         }
       }
     }
-    for (let str in info.structures) {
-      this.Selector.info[info.structures[str].pos[0]][
-        info.structures[str].pos[1]
-      ] = info.structures[str];
-    }
-    for (let crp in info.creeps) {
-      this.Selector.info[info.creeps[crp].pos[0]][info.creeps[crp].pos[1]] =
-        info.creeps[crp];
-    }
+    _.forEach(
+      info.structures,
+      (structure) =>
+        (this.Selector.info[structure.pos[1]][structure.pos[0]].object =
+          structure)
+    );
+    _.forEach(
+      info.creeps,
+      (creep) => (this.Selector.info[creep.pos[1]][creep.pos[0]].object = creep)
+    );
   }
   refresh(info) {
     this.timeAnchor = new Date();
@@ -450,15 +456,26 @@ export class RoomMap {
     }
   }
   mouseSelector(x, y) {
-    this.Selector.x = Math.min(Math.max(0, Math.floor(x * X_SIZE)), X_SIZE - 1);
-    this.Selector.y = Math.min(Math.max(0, Math.floor(y * Y_SIZE)), Y_SIZE - 1);
-    if (this.totalRefresh === true) return;
-    this.infoColumnElement.innerHTML = JSON.stringify(
-      this.Selector.info[this.Selector.x][this.Selector.y]
-    );
+    (x = Math.floor(x * X_SIZE)), (y = Math.floor(y * Y_SIZE));
+    if (x < 0 || x >= X_SIZE || y < 0 || y > Y_SIZE)
+      this.Selector.inRange = false;
+    else this.Selector.inRange = true;
+    if (this.totalRefresh === true || !this.Selector.inRange) return;
+    Object.assign(this.Selector, { x, y });
     this.Selector.pos.translation.set(
-      this.Selector.x * BLOCK_SIZE + BLOCK_SIZE / 2,
-      this.Selector.y * BLOCK_SIZE + BLOCK_SIZE / 2
+      x * BLOCK_SIZE + BLOCK_SIZE / 2,
+      y * BLOCK_SIZE + BLOCK_SIZE / 2
     );
+    const e = this.infoColumnElement;
+    e.innerHTML = `x: ${x}, y: ${y}<br />`;
+    function print(object, indent = `|`) {
+      _.forEach(object, (value, key) => {
+        if (value instanceof Object) {
+          e.innerHTML += `${indent}${key}: <br />`;
+          print(value, indent + `  `);
+        } else e.innerHTML += `${indent}${key}: ${value}<br />`;
+      });
+    }
+    print(this.Selector.info[y][x]);
   }
 }
