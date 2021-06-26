@@ -130,8 +130,9 @@ class Engine {
   }
   getRoomMap(roomName) {
     const room = this.Game.rooms[roomName];
+    const join = (row) => _.join(row, ``);
     if (room instanceof this.Room)
-      return this.RoomTerrain.compress(room.array());
+      return _.join(_.map(room.array(), join), `,`);
   }
   getLog(playerName) {
     const player = this.players[playerName];

@@ -42,6 +42,6 @@ function data(request, opts, callback = () => {}) {
 
 const REQUEST_INTERVAL = 1000;
 setInterval(
-  () => data(`getRoomData`, { roomName }, worldMap.refresh.bind(worldMap)),
+  () => data(`getRoomMap`, { roomName }, worldMap.refresh.bind(worldMap)),
   REQUEST_INTERVAL
 );
