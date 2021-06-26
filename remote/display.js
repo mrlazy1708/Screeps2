@@ -479,3 +479,29 @@ export class RoomMap {
     print(this.Selector.info[y][x]);
   }
 }
+
+export class WorldMap{
+  constructor(){
+    this.totalRefresh = true;
+    this.canvasElement = document.querySelector("#two-canvas");
+    this.two = new Two({
+      height: ORIGIN_RES,
+      width: ORIGIN_RES,
+      autostart: true,
+    }).appendTo(this.canvasElement);
+    this.two.scene.scale = this.canvasElement.offsetWidth / ORIGIN_RES;
+
+    this.Terrain = new Object();
+    this.Structures = new Object();
+    this.Creeps = new Object();
+    this.Selector = new Object();
+
+    this.two.update();
+  }
+  refresh(info){
+    console.log(info);
+  }
+  play(){
+    
+  }
+}

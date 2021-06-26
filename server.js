@@ -54,6 +54,12 @@ const server = http
         fs.createReadStream(`./remote/room.html`).pipe(response);
         break;
 
+      case `/`:
+        console.log1(`root`);
+        response.writeHead(200, { "content-Type": "text/html" });
+        fs.createReadStream(`./remote/world.html`).pipe(response);
+        break;
+
       /** virtual url for identification */
       case `/auth`:
         request.on(`data`, (chunk) => {

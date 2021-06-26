@@ -1,0 +1,174 @@
+* {
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body {
+  font-family: consolas;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+::-webkit-scrollbar {
+  height: 10px;
+  width: 10px;
+  background: #222;
+  padding: 2px;
+}
+::-webkit-scrollbar-corner {
+  background: #222;
+}
+::-webkit-scrollbar-thumb {
+  background: #666;
+  -webkit-border-radius: 1px;
+}
+#upper-monitor {
+  height: 80%;
+  border-width: 0;
+}
+#upper-left-monitor {
+  position: relative;
+  z-index: 1;
+  float: left;
+  width: 80%;
+  height: 100%;
+  border-width: 0;
+  background-color: #1c1c1c;
+}
+#upper-right-monitor {
+  position: relative;
+  z-index: 1;
+  float: left;
+  width: 20%;
+  height: 100%;
+  border-width: 0;
+  color: #aaa;
+  word-wrap:break-word;
+  background-color: #161616;
+  box-shadow: 0 0 5px 1px #222222;
+  font-family: "Courier New", Courier, monospace;
+  font-size: small;
+}
+
+#lower-monitor {
+  position: relative;
+  z-index: 1;
+  height: 20%;
+  box-shadow: 0 0 5px 1px #222222;
+}
+
+#console-menu {
+  z-index: 2;
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 25px;
+  cursor: default;
+  background-color: #424242;
+  color: #aaa;
+  padding-left: 10px;
+  text-align: center;
+  border-top: 1px solid #666666;
+}
+
+.console-menu-tag {
+  display: flex;
+  justify-content: center; /* align horizontal */
+  align-items: center; /* align vertical */
+  position: relative;
+  width: 80px;
+  height: 25px;
+  float: left;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+#console-output {
+  overflow: scroll;
+  position: absolute;
+  z-index: 2;
+  left: 0;
+  right: 0;
+  top: 25px;
+  bottom: 10px;
+  color: #aaa;
+  margin: 0;
+  padding: 5px 10px;
+  background-color: #2b2b2b;
+  font-family: "Courier New", Courier, monospace;
+  font-size: small;
+}
+
+.console-output-line {
+  border-bottom: 2px solid #333;
+}
+
+.console-output-line-stamp {
+  color: silver;
+  display: inline;
+}
+
+.console-output-line-message {
+  color: aliceblue;
+  margin-left: 10px;
+  display: inline;
+}
+
+#console-input-box {
+  position: absolute;
+  z-index: 2;
+  left: 0;
+  right: 0;
+  height: 25px;
+  bottom: 0;
+  color: #aaa;
+  padding-left: 10px;
+  background-color: #353535;
+}
+#console-input {
+  font-family: consolas;
+  z-index: 2;
+  border: 0px;
+  background-color: #353535;
+  color: #aaa;
+  height: 100%;
+  width: 100%;
+  outline: 0;
+  font-size: small;
+}
+#up-low-divline {
+  position: absolute;
+  z-index: 2;
+  width: 100%;
+  height: 1px;
+  top: 80%;
+  background-color: black;
+  cursor: s-resize;
+  opacity: 0;
+}
+#two-canvas {
+  position: absolute;
+  height: 80%;
+  width: 80%;
+  background-color: white;
+}
+#codeEditor {
+  position: absolute;
+  z-index: 2;
+  width: 100%;
+  top: 25px;
+  bottom: 0px;
+  margin: 0;
+  padding: 5px 10px;
+  background-color: #2b2b2b;
+  display: none;
+}
