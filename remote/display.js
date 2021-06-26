@@ -17,6 +17,16 @@ const SOURCE_SHINE_INTERVAL = 3000;
 const BLOCK_SIZE = ORIGIN_RES / X_SIZE;
 const MAP_SIZE_X = BLOCK_SIZE * X_SIZE;
 const MAP_SIZE_Y = BLOCK_SIZE * Y_SIZE;
+const SHARD_SIZE = 1;
+const ROOM_SIZE = ORIGIN_RES / (2 * SHARD_SIZE);
+const TINY_BLOCKSIZE = ORIGIN_RES / (2 * SHARD_SIZE * X_SIZE);
+
+function getXY(roomName) {
+  const [__, qx, nx, qy, ny] = /([WE])(\d+)([NS])(\d+)/.exec(roomName),
+    Y = qy === `N` ? -1 - Number(ny) : Number(ny),
+    X = qx === `W` ? -1 - Number(nx) : Number(nx);
+  return [X + SHARD_SIZE, Y + SHARD_SIZE];
+}
 
 class Source {
   constructor(canvas, info, two) {
@@ -480,8 +490,8 @@ export class RoomMap {
   }
 }
 
-export class WorldMap{
-  constructor(){
+export class ShardMap {
+  constructor() {
     this.totalRefresh = true;
     this.canvasElement = document.querySelector("#two-canvas");
     this.two = new Two({
@@ -492,16 +502,80 @@ export class WorldMap{
     this.two.scene.scale = this.canvasElement.offsetWidth / ORIGIN_RES;
 
     this.Terrain = new Object();
-    this.Structures = new Object();
-    this.Creeps = new Object();
     this.Selector = new Object();
+
+    this.Terrain.group = new Two.Group().addTo(this.two.scene);
+    this.Selector.group = new Two.Group().addTo(this.two.scene);
+
+    this.Terrain.rooms = _.map(Array(2 * SHARD_SIZE), () =>
+      Array(2 * SHARD_SIZE)
+    );
+
+    this.Selector.pos = new Two.Rectangle(
+      0 * ROOM_SIZE + ROOM_SIZE / 2,
+      0 * ROOM_SIZE + ROOM_SIZE / 2,
+      ROOM_SIZE,
+      ROOM_SIZE
+    );
+    this.Selector.pos.noStroke();
+    this.Selector.pos.fill = WHITE;
+    this.Selector.pos.opacity = 0.1;
+    this.Selector.group.add(this.Selector.pos);
 
     this.two.update();
   }
-  refresh(info){
-    console.log(info);
+  refresh(roomName, info) {
+    const [X, Y] = getXY(roomName);
+    this.Terrain.rooms[Y][X] = new Two.Group().addTo(this.Terrain.group);
+    this.Terrain.rooms[Y][X].translation.set(X * ROOM_SIZE, Y * ROOM_SIZE);
+    const terrain = _.map(info.terrain.split(`,`), (r) => r.split(``));
+    for (let y = 0; y < Y_SIZE; y++) {
+      for (let x = 0; x < X_SIZE; x++) {
+        let block;
+        switch (terrain[y][x]) {
+          case "x":
+            block = new Two.Rectangle(
+              x * TINY_BLOCKSIZE + TINY_BLOCKSIZE / 2,
+              y * TINY_BLOCKSIZE + TINY_BLOCKSIZE / 2,
+              TINY_BLOCKSIZE,
+              TINY_BLOCKSIZE
+            );
+            block.noStroke();
+            block.fill = WALL_COLOR;
+            this.Terrain.rooms[Y][X].add(block);
+            break;
+          case "~":
+            block = new Two.Rectangle(
+              x * TINY_BLOCKSIZE + TINY_BLOCKSIZE / 2,
+              y * TINY_BLOCKSIZE + TINY_BLOCKSIZE / 2,
+              TINY_BLOCKSIZE,
+              TINY_BLOCKSIZE
+            );
+            block.noStroke();
+            block.fill = SWAMP_COLOR;
+            this.Terrain.rooms[Y][X].add(block);
+            break;
+          case " ":
+            break;
+          default:
+            throw new Error(`Undefined terrain ${terrain[y][x]}!`);
+        }
+      }
+    }
   }
   play(){
-    
+    this.two.scene.scale = this.canvasElement.offsetWidth / ORIGIN_RES;
+  }
+  mouseSelector(x, y) {
+    (x = Math.floor(x * 2 * SHARD_SIZE)), (y = Math.floor(y * 2 * SHARD_SIZE));
+    if (x < 0 || x >= 2 * SHARD_SIZE || y < 0 || y > 2 * SHARD_SIZE)
+      this.Selector.inRange = false;
+    else this.Selector.inRange = true;
+    if (!this.Selector.inRange) return;
+    Object.assign(this.Selector, { x, y });
+    this.Selector.pos.translation.set(
+      x * ROOM_SIZE + ROOM_SIZE / 2,
+      y * ROOM_SIZE + ROOM_SIZE / 2
+    );
   }
 }
