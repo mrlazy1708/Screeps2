@@ -921,6 +921,7 @@ function create(context, engine, player) {
       super.update(...arguments);
 
       this.fatigue -= this.getActiveBodyparts(MOVE) * (MOVE_POWER + 1);
+      this.fatigue -= this.getActiveBodyparts(CARRY);
       if (this.fatigue <= 0) this.fatigue = 0;
 
       if (this.spawning) {

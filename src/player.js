@@ -4,6 +4,7 @@ const _ = require(`lodash`);
 const assert = require(`assert/strict`);
 const constants = require(`./constants`);
 const fs = require(`fs`);
+const fsp = require(`fs/promises`);
 const { Console } = require(`console`);
 const vm = require(`vm`);
 const setup = require(`./setup`);
@@ -25,16 +26,21 @@ class Player {
 
     this.memory = fs.readFileSync(`${prefix}/memory.json`, { flag: `a+` });
   }
-  runTick(callback) {
+  async start(signal) {
+    /** wait for the start state */
+    await signal;
+    console.log(`Player ${this.name} start running`);
+    let startTime;
+
     /** create context */
     const stdout = fs.createWriteStream(`${this.prefix}/stdout.log`),
       stderr = fs.createWriteStream(`${this.prefix}/stderr.log`);
-    const console = new Console({ stdout, stderr }),
-      consoleLog = console.log;
-    console.log = function () {
-      consoleLog.call(console, new Date().toJSON(), ...arguments);
+    const console_ = new Console({ stdout, stderr }),
+      consoleLog = console_.log;
+    console_.log = function () {
+      consoleLog.call(console_, new Date().toJSON(), JSON.stringify(arguments));
     };
-    const context = { JSON, require, console, _ };
+    const context = { JSON, require, console: console_, _ };
     vm.createContext(context);
 
     /** setup lexical environment */
@@ -42,7 +48,7 @@ class Player {
     setup.reduce(context, this.engine, this);
 
     /** start timer */
-    const startTime = new Date();
+    startTime = new Date();
 
     /** parse Memory */
     Object.assign(context.Memory, JSON.parse(this.memory));
@@ -52,14 +58,18 @@ class Player {
       const script = new vm.Script(this.script);
       script.runInContext(context);
     } catch (err) {
-      console.error(err);
+      console_.error(err);
     }
 
     /** stringify Memory */
     this.memory = JSON.stringify(context.Memory);
-    fs.writeFileSync(`./local/players/${this.name}/memory.json`, this.memory);
+    await fsp.writeFile(`${this.prefix}/memory.json`, this.memory);
 
-    callback();
+    /** end running */
+    console.log(`    Finish running with ${new Date() - startTime}ms`);
+  }
+  async close() {
+    if (this.watch) this.watch.close();
   }
   setScript(script) {
     try {
@@ -71,10 +81,6 @@ class Player {
   }
   schedule(object, args, own) {
     return this.engine.schedule(this, object, args, own);
-  }
-  close() {
-    if (this.watch) this.watch.close();
-    return true;
   }
   recover() {
     const recover = {};

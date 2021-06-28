@@ -62,7 +62,7 @@ const server = http
 
       /** virtual url for identification */
       case `/auth`:
-        request.on(`data`, (chunk) => {
+        request.on(`data`, async (chunk) => {
           try {
             const data = JSON.parse(chunk.toString()),
               auth = data.auth;
@@ -78,6 +78,7 @@ const server = http
                 responseWith(ERR_INVALID_ARGS);
               else {
                 pass[auth.name] = auth.pass;
+                await engine.addPlayer(auth.name);
                 fs.writeFileSync(`./local/pass.json`, JSON.stringify(pass));
                 responseWith(OK);
               }
@@ -128,23 +129,22 @@ const server = http
 
 console.log(`Server running at http://127.0.0.1:8080/`);
 console.log1 = console.log;
-console.log = () => {};
+// console.log = () => {};
 
 const sockets = new Set();
 server.on(`connection`, (socket) => sockets.add(socket));
 
 const local = repl.start();
-local.on(`exit`, () => {
-  fs.writeFileSync(`./local/pass.json`, JSON.stringify(pass));
-  engine.close(() => {
-    for (const socket of sockets) socket.destroy(), sockets.delete(socket);
-    server.close(() => console.log1(`Server closed`));
-  });
+local.on(`exit`, async () => {
+  await engine.close();
+  for (const socket of sockets) socket.destroy(), sockets.delete(socket);
+  server.close(() => console.log1(`Server closed`));
 });
 Object.defineProperties(local.context, {
-  reset: {
-    value: (seed = new Date()) => (engine.requireReset = seed),
-  },
+  start: { value: engine.start.bind(engine) },
+  halt: { value: engine.halt.bind(engine) },
+  close: { value: engine.close.bind(engine) },
+  reset: { value: engine.reset.bind(engine) },
   interval: {
     get: () => engine.interval,
     set: (value) => (engine.interval = value),
@@ -157,3 +157,5 @@ Object.defineProperties(local.context, {
   creeps: { value: engine.Game.creeps },
   structures: { value: engine.Game.structures },
 });
+
+engine.start();

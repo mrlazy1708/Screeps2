@@ -4,13 +4,14 @@ const _ = require(`lodash`);
 const assert = require(`assert/strict`);
 const constants = require(`./constants`);
 const fs = require(`fs`);
+const fsp = require(`fs/promises`);
 const utils = require(`./utils`);
 const setup = require(`./setup`);
 const Player = require(`./player`);
 
 class Engine {
   constructor() {
-    console.log(`Engine starting up`);
+    console.log(`Construct engine`);
 
     const opts = { encoding: `utf8`, flag: `a+` },
       recover = JSON.parse(fs.readFileSync(`./local/meta.json`, opts));
@@ -26,24 +27,7 @@ class Engine {
     this.system = { visible: () => true, god: true };
     setup.create(this, this, this.system);
 
-    console.log(`  Engine started`);
-    this.running = true;
-    this.runTick();
-  }
-  runTick() {
-    if (!_.isUndefined(this.requireReset)) {
-      this.reset(this.requireReset);
-      delete this.requireReset;
-    }
-
-    console.log(`Engine start running at ${this.Game.time}`);
-    this.startTime = new Date();
-
-    this.scheduleMap = new Map();
-    this.ticked = 0;
-    _.forEach(this.players, (player) =>
-      setImmediate(player.runTick.bind(player, this.endTick.bind(this)))
-    );
+    console.log(`    Engine constructed`);
   }
   schedule(player, object, args, own) {
     object = this.Game.getObjectById(object.id);
@@ -51,39 +35,42 @@ class Engine {
     if (own && player.name != object.owner) return ERR_NOT_OWNER;
     this.scheduleMap.set(object.id, args);
   }
-  endTick() {
-    if (++this.ticked === _.keys(this.players).length) {
-      console.log(`  Finishd tick with ${new Date() - this.startTime}ms`);
-      this.ticked = 0;
-      this.Game.time++;
+  async start() {
+    this.scheduleMap = new Map();
+    const signal = new Promise((res) =>
+      setTimeout(
+        () => res(console.log(`Start tick ${this.Game.time}`)),
+        this.interval - (new Date() % (this.interval - 1))
+      )
+    );
+    const process = _.map(this.players, (player) => player.start(signal));
+    this.process = Promise.all(_.concat(signal, process));
 
-      _.forEach(this.Game.rooms, (room) => room.update());
-      _.forEach(this.Game.creeps, (creep) => creep.update());
-      _.forEach(this.Game.structures, (structure) => structure.update());
+    await this.process;
+    console.log(`    End tick ${this.Game.time}\n`);
 
-      fs.writeFileSync(`./local/meta.json`, JSON.stringify(this.recover()));
+    this.Game.time++;
+    _.forEach(this.Game.rooms, (room) => room.update());
+    _.forEach(this.Game.creeps, (creep) => creep.update());
+    _.forEach(this.Game.structures, (structure) => structure.update());
+    await fsp.writeFile(`./local/meta.json`, JSON.stringify(this.recover()));
 
-      // const room = this.Game.rooms.W0N0;
-      // console.log1(`print room ${room.name}`);
-      // console.log1(room.print());
-
-      const interval = this.interval - (new Date() - this.startTime);
-      if (this.running !== true) {
-        assert(_.isFunction(this.running), `Invalid callback ${this.running}`);
-        console.log1(`Engine closed`);
-        return this.running();
-      }
-      setTimeout(this.runTick.bind(this), interval);
-    }
+    this.process.then((halt) => (halt === true ? null : this.start()));
   }
-  reset(seed = new Date()) {
-    console.log(`Resetting engine using seed ${seed}`);
+  async halt() {
+    console.log(`Halt engine`);
+    this.process = this.process.then(() => true);
+    await this.process;
+    console.log(`    Engine halted`);
+  }
+  async reset(seed = new Date()) {
+    console.log(`Reset engine with seed ${seed}`);
+
+    await this.close();
 
     this.interval = 1000;
     this.RNG = utils.PRNG.from(seed);
-    this.players = {
-      Alice: new Player(this, { rcl: 1 }, `Alice`),
-    };
+    this.players = {};
     this.Game = { time: 0, rooms: {} };
 
     setup.create(this, this, this.system);
@@ -123,6 +110,27 @@ class Engine {
           ? this.StructureController.new(room, this.RNG.pick(poss))
           : null;
     });
+
+    console.log(`    Engine reset`);
+    // can't start engine here
+  }
+  async close() {
+    console.log(`Close engine`);
+    await this.halt();
+    fs.writeFileSync(`./local/meta.json`, JSON.stringify(this.recover()));
+    await Promise.all(_.map(this.players, (player) => player.close()));
+    console.log(`    Engine closed`);
+  }
+  async addPlayer(playerName) {
+    await this.halt();
+    assert(_.isUndefined(this.players[playerName]), `Player name exitst!`);
+    const dir = `./local/players/${playerName}`;
+    await fsp.mkdir(dir);
+    await fsp.mkdir(`${dir}/script`);
+    await fsp.writeFile(`${dir}/script/main.js`, `console.log('Hello World!')`);
+    await fsp.writeFile(`${dir}/memory.json`, `{}`);
+    this.players[playerName] = new Player(this, {}, playerName);
+    this.start();
   }
   getRoomData(roomName) {
     const room = this.Game.rooms[roomName];
@@ -152,10 +160,6 @@ class Engine {
     const player = this.players[playerName];
     if (player instanceof Player) return player.setScript(script);
     return ERR_NOT_FOUND;
-  }
-  close(callback) {
-    _.forEach(this.players, (player) => player.close());
-    return (this.running = callback);
   }
   recover() {
     const recover = {};
