@@ -1,6 +1,6 @@
 .DS_Store
 
-./local
+local/**
 
 node_modules/
 note.md
