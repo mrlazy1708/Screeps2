@@ -20,10 +20,10 @@ class Server {
     this.repl = repl.start();
     this.repl.on(`exit`, this.close.bind(this));
     Object.defineProperties(this.repl.context, {
-      start: { value: this.engine.start.bind(this.engine) },
-      halt: { value: this.engine.halt.bind(this.engine) },
-      close: { value: this.engine.close.bind(this.engine) },
-      reset: { value: this.engine.reset.bind(this.engine) },
+      start: { get: () => this.engine.start.bind(this.engine) },
+      halt: { get: () => this.engine.halt.bind(this.engine) },
+      close: { get: () => this.engine.close.bind(this.engine) },
+      reset: { get: () => this.engine.reset.bind(this.engine) },
       interval: {
         get: () => this.engine.interval,
         set: (value) => (this.engine.interval = value),
@@ -32,9 +32,9 @@ class Server {
         get: () => this.engine.Game.time,
         set: (value) => (this.engine.Game.time = value),
       },
-      rooms: { value: this.engine.Game.rooms },
-      creeps: { value: this.engine.Game.creeps },
-      structures: { value: this.engine.Game.structures },
+      rooms: { get: () => this.engine.Game.rooms },
+      creeps: { get: () => this.engine.Game.creeps },
+      structures: { get: () => this.engine.Game.structures },
     });
   }
   async start() {

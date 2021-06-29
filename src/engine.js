@@ -13,21 +13,40 @@ class Engine {
   constructor() {
     console.log(`Construct engine`);
 
-    const opts = { encoding: `utf8`, flag: `a+` },
-      recover = JSON.parse(fs.readFileSync(`./local/meta.json`, opts));
-
-    this.interval = recover.interval;
-    this.RNG = new utils.PRNG(...recover.RNG);
-    this.players = _.mapValues(
-      recover.players,
-      (data, name) => new Player(this, data, name)
-    );
-    this.Game = recover.Game;
-
-    this.system = { visible: () => true, god: true };
-    setup.create(this, this, this.system);
+    this.ready = this.construct();
 
     console.log(`    Engine constructed`);
+  }
+  async construct() {
+    const localExists = await fsp.stat(`./local/players`).catch(() => false);
+    if (!localExists) await fsp.mkdir(`./local/players`, { recursive: true });
+    const metaExists = await fsp.stat(`./local/meta.json`).catch(() => false);
+    if (!metaExists) await fsp.writeFile(`./local/meta.json`, ``);
+
+    try {
+      const opts = { encoding: `utf8`, flag: `a+` },
+        recover = JSON.parse(fs.readFileSync(`./local/meta.json`, opts));
+
+      this.interval = recover.interval;
+      assert(_.isNumber(this.interval), `Invalid interval ${this.interval}`);
+
+      this.RNG = new utils.PRNG(...recover.RNG);
+
+      this.players = _.mapValues(
+        recover.players,
+        (data, name) => new Player(this, data, name)
+      );
+      assert(_.isObject(this.players), `Invalid players ${this.players}`);
+
+      this.Game = recover.Game;
+      assert(_.isObject(this.Game), `Invalid Game ${this.Game}`);
+
+      this.system = { visible: () => true, god: true };
+      setup.create(this, this, this.system);
+    } catch (err) {
+      console.log(err);
+      await this.reset();
+    }
   }
   schedule(player, object, args, own) {
     object = this.Game.getObjectById(object.id);
@@ -36,6 +55,8 @@ class Engine {
     this.scheduleMap.set(object.id, args);
   }
   async start() {
+    await this.ready;
+
     this.scheduleMap = new Map();
     const signal = new Promise((res) =>
       setTimeout(
@@ -59,8 +80,10 @@ class Engine {
   }
   async halt() {
     console.log(`Halt engine`);
-    this.process = this.process.then(() => true);
-    await this.process;
+    if (this.process instanceof Promise) {
+      this.process = this.process.then(() => true);
+      await this.process;
+    }
     console.log(`    Engine halted`);
   }
   async reset(seed = new Date()) {
@@ -76,6 +99,7 @@ class Engine {
     this.players = {};
     this.Game = { time: 0, rooms: {} };
 
+    this.system = { visible: () => true, god: true };
     setup.create(this, this, this.system);
 
     const args = [WORLD_WIDTH, WORLD_HEIGHT, ROOM_WIDTH, ROOM_HEIGHT, this.RNG],
@@ -167,9 +191,9 @@ class Engine {
   recover() {
     const recover = {};
     recover.interval = this.interval;
-    recover.RNG = this.RNG.recover();
+    if (this.RNG instanceof utils.PRNG) recover.RNG = this.RNG.recover();
     recover.players = _.mapValues(this.players, (player) => player.recover());
-    recover.Game = this.Game.recover();
+    if (_.isObject(this.Game)) recover.Game = this.Game.recover();
     return recover;
   }
 }

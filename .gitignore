@@ -1,7 +1,6 @@
 .DS_Store
 
-stdout.log
-stderr.log
+./local
 
 node_modules/
 note.md
