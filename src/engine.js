@@ -68,6 +68,9 @@ class Engine {
 
     await this.close();
 
+    await fsp.rm(`./local/players`, { recursive: true });
+    await fsp.mkdir(`./local/players`);
+
     this.interval = 1000;
     this.RNG = utils.PRNG.from(seed);
     this.players = {};
@@ -121,7 +124,7 @@ class Engine {
     await Promise.all(_.map(this.players, (player) => player.close()));
     console.log(`    Engine closed`);
   }
-  async addPlayer(playerName) {
+  async addPlayer(playerName, pass) {
     await this.halt();
     assert(_.isUndefined(this.players[playerName]), `Player name exitst!`);
     const dir = `./local/players/${playerName}`;
@@ -129,7 +132,7 @@ class Engine {
     await fsp.mkdir(`${dir}/script`);
     await fsp.writeFile(`${dir}/script/main.js`, `console.log('Hello World!')`);
     await fsp.writeFile(`${dir}/memory.json`, `{}`);
-    this.players[playerName] = new Player(this, {}, playerName);
+    this.players[playerName] = new Player(this, { pass }, playerName);
     this.start();
   }
   getRoomData(roomName) {

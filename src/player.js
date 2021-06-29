@@ -13,8 +13,11 @@ class Player {
   constructor(engine, recover, name) {
     this.engine = engine;
     this.name = name;
-    this.prefix = `./local/players/${this.name}`;
 
+    this.pass = recover.pass;
+    this.login = false;
+
+    this.prefix = `./local/players/${this.name}`;
     const prefix = this.prefix;
     this.watch = fs.watch(`${prefix}/script`, { recursive: true }, (_, file) =>
       fs.readFile(`${prefix}/script/${file}`, (err, data) => {
@@ -84,7 +87,7 @@ class Player {
   }
   recover() {
     const recover = {};
-    recover.rcl = this.rcl;
+    recover.pass = this.pass;
     return recover;
   }
 }

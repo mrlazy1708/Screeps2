@@ -8,6 +8,8 @@ The main purpose of **Screeps2** is to rewrite the whole game engine, server and
 
 For a detailed introduction to the game, please refer to the [Screeps2 wiki](https://github.com/mrlazy1708/Screeps2/wiki).
 
+A public accessible server is deployed [here](http://47.95.113.244:8080).
+
 <br />
 
 ## Installation
@@ -31,14 +33,14 @@ git clone https://github.com/mrlazy1708/Screeps2.git
 
 ```bash
 cd Screeps2   	# cd to the project's root dir
-node server.js	# launch server
+node launch.js	# launch server
 ```
 
-The server is expected to running in the background. Go to [localhost](http://127.0.0.1:8080/) via browser to play the game. Public access is currently not supported.
+The server is expected to running in the background. Go to [localhost@8080](http://127.0.0.1:8080/) via browser to play the game locally. Others can directly access your server if they have your public IP on the Internet.
 
 - **Close**
 
-Use a `EOF` signal (Ctrl + D or Ctrl + C twice) to exit the node [REPL](https://nodejs.org/api/repl.html) environment locally, and the server will close the engine, then close all http connections and finally exit properly. 
+Use a `EOF` signal (Ctrl + D or twice Ctrl + C) to exit the node [REPL](https://nodejs.org/api/repl.html) environment locally, and the server will close the engine, then close all http connections and finally exit properly.
 
 **GUI Server**
 

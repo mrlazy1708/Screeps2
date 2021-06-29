@@ -1,0 +1,168 @@
+`use strict`;
+
+const _ = require(`lodash`);
+const assert = require(`assert/strict`);
+const fs = require(`fs`);
+const repl = require(`repl`);
+const http = require(`http`);
+const Engine = require(`./engine`);
+
+class Server {
+  constructor(port) {
+    this.engine = new Engine();
+
+    this.http = new http.Server().listen(port);
+    this.http.on(`request`, this.response.bind(this));
+
+    this.sockets = new Set();
+    this.http.on(`connection`, (socket) => this.sockets.add(socket));
+
+    this.repl = repl.start();
+    this.repl.on(`exit`, this.close.bind(this));
+    Object.defineProperties(this.repl.context, {
+      start: { value: this.engine.start.bind(this.engine) },
+      halt: { value: this.engine.halt.bind(this.engine) },
+      close: { value: this.engine.close.bind(this.engine) },
+      reset: { value: this.engine.reset.bind(this.engine) },
+      interval: {
+        get: () => this.engine.interval,
+        set: (value) => (this.engine.interval = value),
+      },
+      time: {
+        get: () => this.engine.Game.time,
+        set: (value) => (this.engine.Game.time = value),
+      },
+      rooms: { value: this.engine.Game.rooms },
+      creeps: { value: this.engine.Game.creeps },
+      structures: { value: this.engine.Game.structures },
+    });
+  }
+  async start() {
+    this.engine.start();
+  }
+  fetchLocal(response) {
+    return function (local, url, code = 200) {
+      console.log1(`under ${local}: ${url}`);
+      if (fs.existsSync(`${local}${url}.html`)) {
+        response.writeHead(code, { "content-Type": `text/html` });
+        fs.createReadStream(`${local}${url}.html`).pipe(response);
+        return true;
+      }
+      if (fs.existsSync(`${local}${url}`)) {
+        if (url.endsWith(`.js`) || url.endsWith(`.mjs`)) {
+          response.writeHead(code, { "content-Type": `text/javascript` });
+          fs.createReadStream(`${local}${url}`).pipe(response);
+          return true;
+        }
+        if (url.endsWith(`.css`)) {
+          response.writeHead(code, { "content-Type": `text/css` });
+          fs.createReadStream(`${local}${url}`).pipe(response);
+          return true;
+        }
+        if (url.endsWith(`.gif`)) {
+          response.writeHead(code, { "content-Type": `image.gif` });
+          fs.createReadStream(`${local}${url}`).pipe(response);
+          return true;
+        }
+      }
+      console.log1(ERR_NOT_FOUND);
+    };
+  }
+  replyWith(response) {
+    return function (data) {
+      response.writeHead(200, { "content-Type": "text/plain" });
+      response.write(JSON.stringify(data));
+      response.end();
+    };
+  }
+  async response(request, response) {
+    const { headers, method, url } = request,
+      fetchLocal = this.fetchLocal(response),
+      replyWith = this.replyWith(response);
+    switch (url) {
+      /** home page */
+      case `/`:
+        console.log1(`root`);
+        response.writeHead(200, { "content-Type": "text/html" });
+        fs.createReadStream(`./remote/room.html`).pipe(response);
+        break;
+
+      case `/`:
+        console.log1(`root`);
+        response.writeHead(200, { "content-Type": "text/html" });
+        fs.createReadStream(`./remote/world.html`).pipe(response);
+        break;
+
+      /** virtual url for identification */
+      case `/auth`:
+        request.on(`data`, async (chunk) => {
+          try {
+            const data = JSON.parse(chunk.toString()),
+              { name, pass } = data.auth,
+              player = this.engine.players[name];
+            if (data.request === "login") {
+              if (player === undefined) return replyWith(ERR_NOT_FOUND);
+              else player.login = pass === this.engine.players[name].pass;
+              if (player.login === false) replyWith(ERR_NOT_OWNER);
+              if (player.login === true) replyWith(OK);
+            }
+            if (data.request === "register") {
+              if (player !== undefined) replyWith(ERR_NAME_EXISTS);
+              else if (!_.isString(pass)) replyWith(ERR_INVALID_ARGS);
+              else if (pass.length < 6) replyWith(ERR_INVALID_ARGS);
+              else {
+                await this.engine.addPlayer(name, pass);
+                replyWith(OK);
+              }
+            }
+          } catch (err) {
+            console.log1(err);
+          }
+        });
+        break;
+
+      /** virtual url for data fetching and posting */
+      case `/data`:
+        request.on(`data`, async (chunk) => {
+          try {
+            const data = JSON.parse(chunk.toString()),
+              { name, pass } = data.auth,
+              player = this.engine.players[name];
+            if (player === undefined) return replyWith(ERR_NOT_FOUND);
+            if (player.login === false) replyWith(ERR_NOT_AVAILABLE);
+            if (player.login === true) {
+              if (this.engine.players[name].pass === pass) {
+                if (data.request === "getRoomData")
+                  replyWith(this.engine.getRoomData(data.roomName));
+                if (data.request === "getRoomMap")
+                  replyWith(this.engine.getRoomMap(data.roomName));
+                if (data.request === `getLog`)
+                  replyWith(this.engine.getLog(name));
+                if (data.request === `getScript`)
+                  replyWith(this.engine.getScript(name));
+                if (data.request === `setScript`)
+                  replyWith(this.engine.setScript(name, data.script));
+              } else replyWith(ERR_NOT_OWNER);
+            }
+          } catch (err) {
+            console.log1(err);
+          }
+        });
+        break;
+
+      /** default access to local files, or 404 if not found */
+      default:
+        if (fetchLocal(`./remote`, url, 200)) break;
+        if (fetchLocal(`./src`, url, 200)) break;
+        response.writeHead(404, { "content-Type": "text/html" });
+        fs.createReadStream("./remote/404.html").pipe(response);
+    }
+  }
+  async close() {
+    await this.engine.close();
+    for (const socket of this.sockets)
+      socket.destroy(), this.sockets.delete(socket);
+    this.http.close(() => console.log1(`Server closed`));
+  }
+}
+module.exports = Server;
