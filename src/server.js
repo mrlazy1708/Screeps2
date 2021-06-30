@@ -3,6 +3,7 @@
 const _ = require(`lodash`);
 const assert = require(`assert/strict`);
 const fs = require(`fs`);
+const fsp = require(`fs/promises`);
 const repl = require(`repl`);
 const http = require(`http`);
 const Engine = require(`./engine`);
@@ -41,14 +42,14 @@ class Server {
     this.engine.start();
   }
   fetchLocal(response) {
-    return function (local, url, code = 200) {
+    return async function (local, url, code = 200) {
       console.log1(`under ${local}: ${url}`);
-      if (fs.existsSync(`${local}${url}.html`)) {
+      if (await fsp.stat(`${local}${url}.html`).catch(() => false)) {
         response.writeHead(code, { "content-Type": `text/html` });
         fs.createReadStream(`${local}${url}.html`).pipe(response);
         return true;
       }
-      if (fs.existsSync(`${local}${url}`)) {
+      if (await fsp.stat(`${local}${url}`).catch(() => false)) {
         if (url.endsWith(`.js`) || url.endsWith(`.mjs`)) {
           response.writeHead(code, { "content-Type": `text/javascript` });
           fs.createReadStream(`${local}${url}`).pipe(response);
@@ -133,15 +134,15 @@ class Server {
             if (player.login === true) {
               if (this.engine.players[name].pass === pass) {
                 if (data.request === "getRoomData")
-                  replyWith(this.engine.getRoomData(data.roomName));
+                  replyWith(await this.engine.getRoomData(data.roomName));
                 if (data.request === "getRoomMap")
-                  replyWith(this.engine.getRoomMap(data.roomName));
+                  replyWith(await this.engine.getRoomMap(data.roomName));
                 if (data.request === `getLog`)
-                  replyWith(this.engine.getLog(name));
+                  replyWith(await this.engine.getLog(name));
                 if (data.request === `getScript`)
-                  replyWith(this.engine.getScript(name));
+                  replyWith(await this.engine.getScript(name));
                 if (data.request === `setScript`)
-                  replyWith(this.engine.setScript(name, data.script));
+                  replyWith(await this.engine.setScript(name, data.script));
               } else replyWith(ERR_NOT_OWNER);
             }
           } catch (err) {
@@ -152,8 +153,8 @@ class Server {
 
       /** default access to local files, or 404 if not found */
       default:
-        if (fetchLocal(`./remote`, url, 200)) break;
-        if (fetchLocal(`./src`, url, 200)) break;
+        if (await fetchLocal(`./remote`, url, 200)) break;
+        if (await fetchLocal(`./src`, url, 200)) break;
         response.writeHead(404, { "content-Type": "text/html" });
         fs.createReadStream("./remote/404.html").pipe(response);
     }

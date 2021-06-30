@@ -13,21 +13,25 @@ class Player {
   constructor(engine, recover, name) {
     this.engine = engine;
     this.name = name;
+    this.prefix = `./local/players/${this.name}`; // todo: support dir
 
     this.pass = recover.pass;
     this.login = false;
 
-    this.prefix = `./local/players/${this.name}`;
-    const prefix = this.prefix;
-    this.watch = fs.watch(`${prefix}/script`, { recursive: true }, (_, file) =>
-      fs.readFile(`${prefix}/script/${file}`, (err, data) => {
-        if (err) console.log1(`Read script ${err}`);
-        else this.script = data.toString();
-      })
-    );
-    this.script = fs.readFileSync(`${prefix}/script/main.js`).toString();
+    this.ready = this.construct();
+  }
+  async construct() {
+    this.watch = fs.watch(`${this.prefix}/script/main.js`, async (_, file) => {
+      const data = await fsp
+        .readFile(`${this.prefix}/script/${file}`)
+        .catch(() => false);
+      this.script = data.toString();
+    });
+    this.script = await fsp.readFile(`${this.prefix}/script/main.js`);
+    this.script = this.script.toString();
 
-    this.memory = fs.readFileSync(`${prefix}/memory.json`, { flag: `a+` });
+    const flag = `a+`;
+    this.memory = await fsp.readFile(`${this.prefix}/memory.json`, { flag });
   }
   async start(signal) {
     /** wait for the start state */
@@ -74,10 +78,10 @@ class Player {
   async close() {
     if (this.watch) this.watch.close();
   }
-  setScript(script) {
+  async setScript(script) {
     try {
-      fs.writeFileSync(`./local/players/${this.name}/script/main.js`, script);
-      return `ok`;
+      await fsp.writeFile(`${this.prefix}/script/main.js`, script);
+      return OK;
     } catch (err) {
       return err.toString();
     }

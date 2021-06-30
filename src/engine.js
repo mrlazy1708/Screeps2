@@ -3,7 +3,6 @@
 const _ = require(`lodash`);
 const assert = require(`assert/strict`);
 const constants = require(`./constants`);
-const fs = require(`fs`);
 const fsp = require(`fs/promises`);
 const utils = require(`./utils`);
 const setup = require(`./setup`);
@@ -25,7 +24,7 @@ class Engine {
 
     try {
       const opts = { encoding: `utf8`, flag: `a+` },
-        recover = JSON.parse(fs.readFileSync(`./local/meta.json`, opts));
+        recover = JSON.parse(await fsp.readFile(`./local/meta.json`, opts));
 
       this.interval = recover.interval;
       assert(_.isNumber(this.interval), `Invalid interval ${this.interval}`);
@@ -37,6 +36,7 @@ class Engine {
         (data, name) => new Player(this, data, name)
       );
       assert(_.isObject(this.players), `Invalid players ${this.players}`);
+      await Promise.all(_.map(this.players, `ready`));
 
       this.Game = recover.Game;
       assert(_.isObject(this.Game), `Invalid Game ${this.Game}`);
@@ -144,7 +144,7 @@ class Engine {
   async close() {
     console.log(`Close engine`);
     await this.halt();
-    fs.writeFileSync(`./local/meta.json`, JSON.stringify(this.recover()));
+    await fsp.writeFile(`./local/meta.json`, JSON.stringify(this.recover()));
     await Promise.all(_.map(this.players, (player) => player.close()));
     console.log(`    Engine closed`);
   }
@@ -159,31 +159,31 @@ class Engine {
     this.players[playerName] = new Player(this, { pass }, playerName);
     this.start();
   }
-  getRoomData(roomName) {
+  async getRoomData(roomName) {
     const room = this.Game.rooms[roomName];
     if (room instanceof this.Room) return room.recover();
   }
-  getRoomMap(roomName) {
+  async getRoomMap(roomName) {
     const room = this.Game.rooms[roomName];
     const join = (row) => _.join(row, ``);
     if (room instanceof this.Room)
       return _.join(_.map(room.array(), join), `,`);
   }
-  getLog(playerName) {
+  async getLog(playerName) {
     const player = this.players[playerName];
     if (player instanceof Player)
       return {
-        stdout: fs.readFileSync(`${player.prefix}/stdout.log`).toString(),
-        stderr: fs.readFileSync(`${player.prefix}/stderr.log`).toString(),
+        stdout: (await fsp.readFile(`${player.prefix}/stdout.log`)).toString(),
+        stderr: (await fsp.readFile(`${player.prefix}/stderr.log`)).toString(),
       };
     return ERR_NOT_FOUND;
   }
-  getScript(playerName) {
+  async getScript(playerName) {
     const player = this.players[playerName];
     if (player instanceof Player) return player.script;
     return ERR_NOT_FOUND;
   }
-  setScript(playerName, script) {
+  async setScript(playerName, script) {
     const player = this.players[playerName];
     if (player instanceof Player) return player.setScript(script);
     return ERR_NOT_FOUND;
