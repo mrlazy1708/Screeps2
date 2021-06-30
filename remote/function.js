@@ -1,19 +1,13 @@
 function upLowDivlineMove(event) {
-  let mouseDown = true;
-  const divline = document.querySelector("#up-low-divline");
   const upBox = document.querySelector("#upper-monitor");
   const lowBox = document.querySelector("#lower-monitor");
-  window.onmouseup = () => (mouseDown = false);
+  const [mouseY0, divY0] = [event.pageY, lowBox.offsetTop];
+  window.onmouseup = () => (window.onmousemove = () => {});
   window.onmousemove = function (event) {
-    if (mouseDown) {
-      const boxY = Math.min(
-        Math.max(event.pageY, window.outerHeight * 0.6),
-        window.outerHeight * 0.7
-      );
-      divline.style.top = `${(100 * boxY) / window.innerHeight}%`;
-      upBox.style.height = `${(100 * boxY) / window.innerHeight}%`;
-      lowBox.style.height = `${100 * (1 - boxY / window.innerHeight)}%`;
-    }
+    const newY = divY0 + event.pageY - mouseY0,
+      divY = Math.min(Math.max(newY, 0), window.innerHeight);
+    upBox.style.height = `${divY}px`;
+    lowBox.style.height = `${window.innerHeight - divY}px`;
   };
 }
 
@@ -29,20 +23,18 @@ function clamp(upBox, canvas) {
 }
 
 function twoCanvasMove(event) {
-  let mouseDown = true;
+  let = true;
   const upBox = document.querySelector("#upper-left-monitor");
   const canvas = document.querySelector("#two-canvas");
   const [mouseX0, mouseY0] = [event.pageX, event.pageY],
     [canvasX0, canvasY0] = [canvas.offsetLeft, canvas.offsetTop];
   window.onmouseup = function () {
-    mouseDown = false;
+    window.onmousemove = () => {};
     clamp(upBox, canvas);
   };
   window.onmousemove = function (event) {
-    if (mouseDown) {
-      canvas.style.left = `${canvasX0 + event.pageX - mouseX0}px`;
-      canvas.style.top = `${canvasY0 + event.pageY - mouseY0}px`;
-    }
+    canvas.style.left = `${canvasX0 + event.pageX - mouseX0}px`;
+    canvas.style.top = `${canvasY0 + event.pageY - mouseY0}px`;
   };
 }
 
@@ -59,6 +51,14 @@ function twoCanvasZoom(event) {
   canvas.style.left = `${mouseX - ratioX * size}px`;
   canvas.style.top = `${mouseY - ratioY * size}px`;
   clamp(upBox, canvas);
+}
+
+function consoleInput(element, event) {
+  if (event.keyCode === 13) {
+    consoleOutput(`[${new Date().toJSON()}]:`, `${element.value}\n`);
+  } else if (event.keyCode === 8 && element.value === "> ") {
+    event.returnValue = false;
+  }
 }
 
 function consoleOutput(stamp, message) {
@@ -84,15 +84,6 @@ function consoleOutput(stamp, message) {
     lineMessage.id = `console-output-line-stamp-${index}`;
     lineMessage.textContent = message;
     line.appendChild(lineMessage);
-  }
-}
-
-function consoleInput(element, event) {
-  if (event.keyCode === 13) {
-    consoleOutput(`[${new Date().toJSON()}]:`, `${element.value.slice(2)}\n`);
-    element.value = "> ";
-  } else if (event.keyCode === 8 && element.value === "> ") {
-    event.returnValue = false;
   }
 }
 

@@ -3,16 +3,32 @@
 <head>
     <meta charset="utf-8" />
     <title>Screeps2</title>
-    <link href="login.css" rel="stylesheet" type="text/css" />
+    <link href="index.css" rel="stylesheet" type="text/css" />
     <script src="https://cdn.jsdelivr.net/npm/lodash@4.17.21/lodash.min.js"></script>
     <script src="login.js"></script>
 </head>
 
 <body>
-    <label id="label-name">Name: </label>
-    <input id="input-name" type="text"><br>
-    <label id="label-password">Password: </label>
-    <input id="input-password" type="password"><br>
-    <button id="button-login" onclick="clickLogin()">Login</button>
-    <button id="button-register" onclick="clickRegister()">Register</button>
+    <div class="center-wrap" id="login-section">
+        <div id="login-title">Login to Screeps2</div>
+        <div class="center-wrap" id="login-frame">
+            <form>
+                <p>
+                    <label id="label-name">NAME</label>
+                    <input id="input-name" type="text"><br>
+                </p>
+                <p>
+                    <label id="label-password">PASSWORD</label>
+                    <input id="input-password" type="password"><br>
+
+                </p>
+            </form>
+            <div class="center-wrap">
+                <button id="button-login" onmouseover="style.backgroundColor='#666666';"
+                    onmouseout="style.backgroundColor='#424242';" onclick="clickLogin()">Login</button>
+                <button id="button-register" onmouseover="style.backgroundColor='#666666';"
+                    onmouseout="style.backgroundColor='#424242';" onclick="clickRegister()">Register</button>
+            </div>
+        </div>
+    </div>
 </body>

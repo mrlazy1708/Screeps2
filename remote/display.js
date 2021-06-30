@@ -1,5 +1,5 @@
 const BGD_COLOR = "#2b2b2b";
-const WALL_COLOR = "#1d1d1d";
+const WALL_COLOR = "#1e1e1e";
 const SWAMP_COLOR = "#28301d";
 const MARGIN_COLOR = "#222222";
 const SOURCE_COLOR = "#f6e07b";
@@ -587,7 +587,7 @@ export class ShardMap {
               TINY_BLOCKSIZE
             );
             block.noStroke();
-            block.fill = `#ee1133`;
+            block.fill = `#4EC9B0`;
             this.Terrain.rooms[Y][X].add(block);
           // throw new Error(`Undefined info ${info[y][x]}!`);
         }

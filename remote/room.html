@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <title>Screeps2</title>
-  <link href="room.css" rel="stylesheet" type="text/css" />
+  <link href="index.css" rel="stylesheet" type="text/css" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/two.js/0.7.5/two.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/lodash@4.17.21/lodash.min.js"></script>
   <script src="http://cdn.bootcss.com/ace/1.2.4/ace.js"></script>
@@ -18,7 +18,7 @@
     <div id="upper-right-monitor"></div>
   </div>
   <div id="lower-monitor">
-    <div id="console-menu">
+    <div id="console-menu" onmousedown="upLowDivlineMove(event);">
       <div class="console-menu-tag" id="console-tag" onmouseover="style.backgroundColor='#666666';"
         onmouseout="style.backgroundColor='#424242';" onmousedown="switchWindow('script');">
         Script
@@ -31,13 +31,13 @@
     <div id="console-window">
       <div id="console-output"></div>
       <div id="console-input-box">
-        <input id="console-input" value="> " onkeydown="consoleInput(this,event);" autocomplete="off" />
+        <div id="console-input-prompt">> </div>
+        <input id="console-input" onkeydown="consoleInput(this,event);" autocomplete="off" />
       </div>
     </div>
-    <div id="script-window">
-      <pre id="codeEditor" class="ace_editor"><s:textarea class="ace_text-input"/></pre>
-    </div>
   </div>
-  <div id="up-low-divline" onmouseover="style.opacity='0.3';" onmouseout="style.opacity='0';"
-    onmousedown="upLowDivlineMove(event);"></div>
+  <div id="script-window">
+    <pre id="codeEditor" class="ace_editor"><s:textarea class="ace_text-input"/></pre>
+  </div>
+  </div>
 </body>
