@@ -11,6 +11,8 @@ const setup = require(`./setup`);
 
 class Player {
   constructor(engine, recover, name) {
+    console.log(`Construct player ${name}`);
+
     this.engine = engine;
     this.name = name;
     this.prefix = `./local/players/${this.name}`; // todo: support dir
@@ -32,6 +34,8 @@ class Player {
 
     const flag = `a+`;
     this.memory = await fsp.readFile(`${this.prefix}/memory.json`, { flag });
+
+    console.log(`    Player ${this.name} constructed`);
   }
   async start(signal) {
     /** wait for the start state */

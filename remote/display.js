@@ -550,11 +550,11 @@ export class ShardMap {
     const [X, Y] = getXY(roomName);
     this.Terrain.rooms[Y][X] = new Two.Group().addTo(this.Terrain.group);
     this.Terrain.rooms[Y][X].translation.set(X * ROOM_SIZE, Y * ROOM_SIZE);
-    const terrain = _.map(info.terrain.split(`,`), (r) => r.split(``));
+    info = _.map(info.split(`,`), (r) => r.split(``));
     for (let y = 0; y < Y_SIZE; y++) {
       for (let x = 0; x < X_SIZE; x++) {
         let block;
-        switch (terrain[y][x]) {
+        switch (info[y][x]) {
           case "x":
             block = new Two.Rectangle(
               x * TINY_BLOCKSIZE + TINY_BLOCKSIZE / 2,
@@ -580,7 +580,16 @@ export class ShardMap {
           case " ":
             break;
           default:
-            throw new Error(`Undefined terrain ${terrain[y][x]}!`);
+            block = new Two.Rectangle(
+              x * TINY_BLOCKSIZE + TINY_BLOCKSIZE / 2,
+              y * TINY_BLOCKSIZE + TINY_BLOCKSIZE / 2,
+              TINY_BLOCKSIZE,
+              TINY_BLOCKSIZE
+            );
+            block.noStroke();
+            block.fill = `#ee1133`;
+            this.Terrain.rooms[Y][X].add(block);
+          // throw new Error(`Undefined info ${info[y][x]}!`);
         }
       }
     }

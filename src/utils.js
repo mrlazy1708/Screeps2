@@ -25,8 +25,8 @@ module.exports.opposite = opposite;
 
 // prettier-ignore
 const ASCIIs = {[TERRAIN_PLAIN]: ` `, [TERRAIN_SWAMP]: `~`, [TERRAIN_LAVA]: `!`, [TERRAIN_WALL]: `x`, 
-    [TOP]: `↑`, [TOP_RIGHT]: `↗`, [RIGHT]: `→`, [BOTTOM_RIGHT]: `↘`, [BOTTOM]: `↓`, [BOTTOM_LEFT]: `↙`, [LEFT]: `←`, [TOP_LEFT]: `↖`, 
-    [STRUCTURE_CONTROLLER]: `⌘`,[STRUCTURE_SOURCE]: `☢︎`,[STRUCTURE_SPAWN]: `⚙︎`};
+    [TOP]: `0`, [TOP_RIGHT]: `1`, [RIGHT]: `2`, [BOTTOM_RIGHT]: `3`, [BOTTOM]: `4`, [BOTTOM_LEFT]: `5`, [LEFT]: `6`, [TOP_LEFT]: `7`, 
+    [STRUCTURE_CONTROLLER]: `c`,[STRUCTURE_SOURCE]: `s`,[STRUCTURE_SPAWN]: `p`};
 module.exports.symbol = (object) =>
   ASCIIs[object] || ASCIIs[object.head] || ASCIIs[object.structureType];
 

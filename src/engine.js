@@ -11,17 +11,9 @@ const Player = require(`./player`);
 class Engine {
   constructor() {
     console.log(`Construct engine`);
-
     this.ready = this.construct();
-
-    console.log(`    Engine constructed`);
   }
   async construct() {
-    const localExists = await fsp.stat(`./local/players`).catch(() => false);
-    if (!localExists) await fsp.mkdir(`./local/players`, { recursive: true });
-    const metaExists = await fsp.stat(`./local/meta.json`).catch(() => false);
-    if (!metaExists) await fsp.writeFile(`./local/meta.json`, ``);
-
     try {
       const opts = { encoding: `utf8`, flag: `a+` },
         recover = JSON.parse(await fsp.readFile(`./local/meta.json`, opts));
@@ -43,6 +35,8 @@ class Engine {
 
       this.system = { visible: () => true, god: true };
       setup.create(this, this, this.system);
+
+      console.log(`    Engine constructed`);
     } catch (err) {
       console.log(err);
       await this.reset();
@@ -91,8 +85,10 @@ class Engine {
 
     await this.close();
 
-    await fsp.rm(`./local/players`, { recursive: true });
-    await fsp.mkdir(`./local/players`);
+    await fsp.rm(`./local`, { recursive: true });
+    await fsp.mkdir(`./local/players`, { recursive: true });
+    await fsp.writeFile(`./local/meta.json`, ``);
+    await fsp.writeFile(`./local/terrain.json`, ``);
 
     this.interval = 1000;
     this.RNG = utils.PRNG.from(seed);
