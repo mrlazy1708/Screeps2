@@ -2,32 +2,49 @@
 
 import { RoomMap } from "./display.js";
 
-const roomName = `W0N0`;
+async function main() {
+  await initMonitor();
+  await initEditor();
 
-initMonitor();
+  const roomName = window.sessionStorage.getItem(`room`) || `W0N0`;
 
-initEditor();
+  const origin = `${window.location.protocol}//${window.location.host}`;
 
-const REFRESH_INTERVAL = 16;
-const roomMap = new RoomMap();
-setInterval(() => roomMap.play(), REFRESH_INTERVAL);
+  const REFRESH_INTERVAL = 16;
+  const roomMap = new RoomMap();
+  setInterval(() => roomMap.play(), REFRESH_INTERVAL);
 
-const log = (info) => {
-  info = info.stdout.split(`\n`);
-  _.forEach(info, (line) =>
-    consoleOutput(`[${line.slice(0, 24)}]:`, line.slice(25))
-  );
-};
+  const printLog = (info) => {
+    info = info.stdout.split(`\n`);
+    _.forEach(info, (line) =>
+      consoleOutput(`[${line.slice(0, 24)}]:`, line.slice(25))
+    );
+  };
 
-const REQUEST_INTERVAL = 1000;
-setInterval(
-  () => data(`getRoomData`, { roomName }, roomMap.refresh.bind(roomMap)),
-  REQUEST_INTERVAL
-);
-setInterval(() => data(`getLog`, {}, (json) => log(json)), REQUEST_INTERVAL);
+  async function room() {
+    const { interval, time, alive } = await data(`getMeta`),
+      delta = interval - (new Date() % (interval - 1));
+    await new Promise((res) => setTimeout(() => res(), delta));
+    const info = await data(`getRoomData`, { roomName });
+    if (info === `Error: Not Found`) window.location.replace(`${origin}/shard`);
+    else roomMap.refresh(info);
+    const log = await data(`getLog`);
+    printLog(log);
+    room();
+  }
+  room();
 
-const AUTOSAVE_INTERVAL = 5000;
-setInterval(() => {
-  const script = ace.edit("codeEditor").getValue();
-  data(`setScript`, { script }, () => {}); // TODO: save-on-change
-}, AUTOSAVE_INTERVAL);
+  const editor = ace.edit("codeEditor");
+  const SAVEBACK_INTERVAL = 5000;
+
+  let lastSave = new Date();
+
+  editor.on(`change`, () => {
+    if (new Date() - lastSave > SAVEBACK_INTERVAL) {
+      lastSave = new Date();
+      data(`setScript`, { script: editor.getValue() });
+      console.log(`saved`);
+    }
+  });
+}
+main();

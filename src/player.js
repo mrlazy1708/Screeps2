@@ -41,7 +41,6 @@ class Player {
     /** wait for the start state */
     await signal;
     console.log(`Player ${this.name} start running`);
-    let startTime;
 
     /** create context */
     const stdout = fs.createWriteStream(`${this.prefix}/stdout.log`),
@@ -59,7 +58,7 @@ class Player {
     setup.reduce(context, this.engine, this);
 
     /** start timer */
-    startTime = new Date();
+    const startTime = new Date();
 
     /** parse Memory */
     Object.assign(context.Memory, JSON.parse(this.memory));

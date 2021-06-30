@@ -15,6 +15,7 @@ for (let i = -SHARD_SIZE; i < SHARD_SIZE; i++) {
     const roomName =
       `${i >= 0 ? `E${i}` : `W${-1 - i}`}` +
       `${j >= 0 ? `S${j}` : `N${-1 - j}`}`;
-    data(`getRoomMap`, { roomName }, shardMap.refresh.bind(shardMap, roomName));
+    const info = await data(`getRoomMap`, { roomName });
+    shardMap.refresh(info);
   }
 }

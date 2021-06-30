@@ -123,10 +123,14 @@ class Server {
             const data = JSON.parse(chunk.toString()),
               { name, pass } = data.auth,
               player = this.engine.players[name];
-            if (player === undefined) return replyWith(ERR_NOT_FOUND);
+            if (player === undefined) return replyWith(ERR_NOT_AVAILABLE);
             if (player.login === false) replyWith(ERR_NOT_AVAILABLE);
             if (player.login === true) {
               if (this.engine.players[name].pass === pass) {
+                if (data.request === "getMeta")
+                  replyWith(await this.engine.getMeta(name));
+                if (data.request === "setSpawn")
+                  replyWith(await this.engine.setSpawn(name, data.pos, data));
                 if (data.request === "getRoomData")
                   replyWith(await this.engine.getRoomData(data.roomName));
                 if (data.request === "getRoomMap")

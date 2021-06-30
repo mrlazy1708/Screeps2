@@ -36,6 +36,11 @@ class Engine {
       this.system = { visible: () => true, god: true };
       setup.create(this, this, this.system);
 
+      _.forEach(
+        this.Game.spawns,
+        (spawn) => (this.players[spawn.owner].alive = true)
+      );
+
       console.log(`    Engine constructed`);
     } catch (err) {
       console.log(err);
@@ -155,34 +160,57 @@ class Engine {
     this.players[playerName] = new Player(this, { pass }, playerName);
     this.start();
   }
+  async getMeta(playerName) {
+    const player = this.players[playerName];
+    assert(player instanceof Player, `Invalid player ${playerName}`);
+    const meta = {
+      interval: this.interval,
+      time: this.time,
+      alive: player.alive,
+    };
+    return meta;
+  }
+  async setSpawn(playerName, [roomName, x, y], { spawnName }) {
+    const player = this.players[playerName];
+    assert(player instanceof Player, `Invalid player ${playerName}`);
+    const room = this.Game.rooms[roomName];
+    if (_.isUndefined(room)) return ERR_NOT_FOUND;
+    if (x < 0 || x >= ROOM_WIDTH || y < 0 || y > ROOM_HEIGHT)
+      return ERR_INVALID_ARGS;
+    const looks = room.at(x, y);
+    if (looks.length !== 1 || _.head(looks) !== TERRAIN_PLAIN)
+      return ERR_INVALID_ARGS;
+    this.StructureSpawn.new(room, [x, y], spawnName, playerName);
+    return OK;
+  }
   async getRoomData(roomName) {
     const room = this.Game.rooms[roomName];
-    if (room instanceof this.Room) return room.recover();
+    if (_.isUndefined(room)) return ERR_NOT_FOUND;
+    return room.recover();
   }
   async getRoomMap(roomName) {
-    const room = this.Game.rooms[roomName];
-    const join = (row) => _.join(row, ``);
-    if (room instanceof this.Room)
-      return _.join(_.map(room.array(), join), `,`);
+    const join = (row) => _.join(row, ``),
+      room = this.Game.rooms[roomName];
+    if (_.isUndefined(room)) return ERR_NOT_FOUND;
+    return _.join(_.map(room.array(), join), `,`);
   }
   async getLog(playerName) {
     const player = this.players[playerName];
-    if (player instanceof Player)
-      return {
-        stdout: (await fsp.readFile(`${player.prefix}/stdout.log`)).toString(),
-        stderr: (await fsp.readFile(`${player.prefix}/stderr.log`)).toString(),
-      };
-    return ERR_NOT_FOUND;
+    assert(player instanceof Player, `Invalid player ${playerName}`);
+    return {
+      stdout: (await fsp.readFile(`${player.prefix}/stdout.log`)).toString(),
+      stderr: (await fsp.readFile(`${player.prefix}/stderr.log`)).toString(),
+    };
   }
   async getScript(playerName) {
     const player = this.players[playerName];
-    if (player instanceof Player) return player.script;
-    return ERR_NOT_FOUND;
+    assert(player instanceof Player, `Invalid player ${playerName}`);
+    return player.script;
   }
   async setScript(playerName, script) {
     const player = this.players[playerName];
-    if (player instanceof Player) return player.setScript(script);
-    return ERR_NOT_FOUND;
+    assert(player instanceof Player, `Invalid player ${playerName}`);
+    return player.setScript(script);
   }
   recover() {
     const recover = {};

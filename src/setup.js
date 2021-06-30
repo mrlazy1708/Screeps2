@@ -292,7 +292,6 @@ function create(context, engine, player) {
       const array = this.terrain.array(),
         draw = (object) => {
           const pos = object.pos;
-          console.log(pos, utils.symbol(object));
           array[pos.y][pos.x] = utils.symbol(object);
         };
       _.forEach(_creeps.get(this.name), draw);

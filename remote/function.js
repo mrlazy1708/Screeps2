@@ -1,6 +1,7 @@
 function upLowDivlineMove(event) {
   const upBox = document.querySelector("#upper-monitor");
-  const lowBox = document.querySelector("#lower-monitor");
+  const lowBox = document.querySelector("#lower-monitor"),
+    editor = ace.edit("codeEditor");
   const [mouseY0, divY0] = [event.pageY, lowBox.offsetTop];
   window.onmouseup = () => (window.onmousemove = () => {});
   window.onmousemove = function (event) {
@@ -8,6 +9,7 @@ function upLowDivlineMove(event) {
       divY = Math.min(Math.max(newY, 0), window.innerHeight);
     upBox.style.height = `${divY}px`;
     lowBox.style.height = `${window.innerHeight - divY}px`;
+    editor.resize();
   };
 }
 
@@ -105,7 +107,7 @@ function switchWindow(tag) {
   }
 }
 
-function initMonitor() {
+async function initMonitor() {
   const monitor = document.querySelector("#upper-left-monitor"),
     canvas = document.createElement(`div`);
   canvas.id = `two-canvas`;
@@ -120,7 +122,7 @@ function initMonitor() {
   monitor.appendChild(canvas);
 }
 
-function initEditor() {
+async function initEditor() {
   const editor = ace.edit("codeEditor");
   const theme = "tomorrow_night";
   const language = "javascript";
@@ -130,24 +132,23 @@ function initEditor() {
   editor.setReadOnly(false);
   editor.session.setTabSize(2);
   editor.setShowPrintMargin(false);
-  data(`getScript`, {}, (json) => editor.setValue(json));
+  editor.setValue(await data(`getScript`));
 }
 
-function data(request, opts, callback = () => {}) {
+async function data(request, opts = {}) {
   const name = window.sessionStorage.getItem(`name`) || ``,
     pass = window.sessionStorage.getItem(`pass`) || ``,
     body = { auth: { name, pass }, request },
     origin = `${window.location.protocol}//${window.location.host}`;
-  fetch(`${origin}/data`, {
+  const json = await fetch(`${origin}/data`, {
     method: `POST`,
     body: JSON.stringify(Object.assign(body, opts)),
   })
     .then((response) => response.json())
-    .then((json) => {
-      if (json === `Error: Not Available` || json === `Error: Not Found`) {
-        window.sessionStorage.setItem(`prev`, window.location.href);
-        window.location.replace(`${origin}/login`);
-      } else return json;
-    })
-    .then((json) => callback(json));
+    .catch(() => console.log(`do some off-line stuff`));
+  if (json === `Error: Not Available`) {
+    window.sessionStorage.setItem(`prev`, window.location.href);
+    window.location.replace(`${origin}/login`);
+  }
+  return json;
 }
