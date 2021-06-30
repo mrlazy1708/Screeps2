@@ -2,20 +2,31 @@
 
 import { ShardMap } from "./display.js";
 
-initMonitor();
+async function shard(shardMap) {
+  const { WORLD_WIDTH, WORLD_HEIGHT, interval } = await data(`getMeta`),
+    delta = interval - (new Date() % (interval - 1));
+  await new Promise((res) => setTimeout(() => res(), delta));
 
-const SHARD_SIZE = 1;
+  _.forEach(_.range(-WORLD_HEIGHT / 2, WORLD_HEIGHT / 2), async (y) =>
+    _.forEach(_.range(-WORLD_WIDTH / 2, WORLD_WIDTH / 2), async (x) => {
+      const roomName =
+        `${x >= 0 ? `E${x}` : `W${-1 - x}`}` +
+        `${y >= 0 ? `S${y}` : `N${-1 - y}`}`;
+      const info = await data(`getRoomData`, { roomName });
+      shardMap.refresh(roomName, info.terrain);
+    })
+  );
 
-const REFRESH_INTERVAL = 16;
-const shardMap = new ShardMap();
-setInterval(() => shardMap.play(), REFRESH_INTERVAL);
-
-for (let i = -SHARD_SIZE; i < SHARD_SIZE; i++) {
-  for (let j = -SHARD_SIZE; j < SHARD_SIZE; j++) {
-    const roomName =
-      `${i >= 0 ? `E${i}` : `W${-1 - i}`}` +
-      `${j >= 0 ? `S${j}` : `N${-1 - j}`}`;
-    const info = await data(`getRoomMap`, { roomName });
-    shardMap.refresh(info);
-  }
+  shard(shardMap);
 }
+
+async function main() {
+  await initMonitor();
+
+  const REFRESH_INTERVAL = 16;
+  const shardMap = new ShardMap();
+  setInterval(() => shardMap.play(), REFRESH_INTERVAL);
+
+  shard(shardMap);
+}
+main();

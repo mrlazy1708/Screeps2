@@ -525,6 +525,9 @@ export class ShardMap {
     this.Terrain.rooms = _.map(Array(2 * SHARD_SIZE), () =>
       Array(2 * SHARD_SIZE)
     );
+    this.Terrain.infos = _.map(Array(2 * SHARD_SIZE), () =>
+      Array(2 * SHARD_SIZE)
+    );
 
     this.Selector.pos = new Two.Rectangle(
       0 * ROOM_SIZE + ROOM_SIZE / 2,
@@ -548,6 +551,10 @@ export class ShardMap {
   }
   refresh(roomName, info) {
     const [X, Y] = getXY(roomName);
+    if (this.Terrain.infos[Y][X] === info) return;
+    this.Terrain.infos[Y][X] = info;
+    if (this.Terrain.rooms[Y][X] !== undefined)
+      this.Terrain.rooms[Y][X].remove();
     this.Terrain.rooms[Y][X] = new Two.Group().addTo(this.Terrain.group);
     this.Terrain.rooms[Y][X].translation.set(X * ROOM_SIZE, Y * ROOM_SIZE);
     info = _.map(info.split(`,`), (r) => r.split(``));

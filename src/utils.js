@@ -151,7 +151,7 @@ class Maze {
   }
   static generate(nX, nY, X, Y, RNG = PRNG.from(), loss1, loss2) {
     const cross = new Maze(nX * 2 + 1, nY * 2 + 1, RNG);
-    cross.make(1, 1).loss(loss1);
+    cross.make(1, 1).loss(loss1, () => 1);
     const isEdge = Maze.isEdge(X, Y),
       isOut = Maze.isEdge(nX * X, nY * Y),
       isWall = (x, y) => {
@@ -165,7 +165,12 @@ class Maze {
         return !cross.look(wx, wy);
       };
     const terrain = new Maze(nX * X, nY * Y, RNG, isWall);
-    terrain.make().trim(5).loss(loss2).grow(7).trim(5);
+    terrain
+      .make()
+      .trim(5)
+      .loss(loss2, () => 1)
+      .grow(7)
+      .trim(5);
     return terrain.split(X, Y);
   }
   constructor(X, Y, RNG = PRNG.from(), isWall = Maze.isEdge(X, Y)) {
@@ -244,9 +249,11 @@ class Maze {
       )
     );
   }
-  loss(rate) {
-    this.data = _.map(this.data, (row) =>
-      _.map(row, (v) => (v ? this.RNG.rand() > -rate : this.RNG.rand() < rate))
+  loss(rate, factor) {
+    const pos = (x, y) => this.RNG.rand() > -rate * factor(x, y),
+      neg = (x, y) => this.RNG.rand() < rate * factor(x, y);
+    this.data = _.map(this.data, (row, y) =>
+      _.map(row, (value, x) => (value ? pos(x, y) : neg(x, y)))
     );
     return this;
   }

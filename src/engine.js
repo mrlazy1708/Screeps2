@@ -164,6 +164,10 @@ class Engine {
     const player = this.players[playerName];
     assert(player instanceof Player, `Invalid player ${playerName}`);
     const meta = {
+      WORLD_WIDTH,
+      WORLD_HEIGHT,
+      ROOM_WIDTH,
+      ROOM_HEIGHT,
       interval: this.interval,
       time: this.time,
       alive: player.alive,
