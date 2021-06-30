@@ -85,13 +85,7 @@ class Server {
       case `/`:
         console.log1(`root`);
         response.writeHead(200, { "content-Type": "text/html" });
-        fs.createReadStream(`./remote/room.html`).pipe(response);
-        break;
-
-      case `/`:
-        console.log1(`root`);
-        response.writeHead(200, { "content-Type": "text/html" });
-        fs.createReadStream(`./remote/world.html`).pipe(response);
+        fs.createReadStream(`./remote/index.html`).pipe(response);
         break;
 
       /** virtual url for identification */
