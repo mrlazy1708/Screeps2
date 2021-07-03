@@ -488,7 +488,7 @@ export class RoomMap {
   }
   mouseSelector(x, y) {
     (x = Math.floor(x * X_SIZE)), (y = Math.floor(y * Y_SIZE));
-    if (x < 0 || x >= X_SIZE || y < 0 || y > Y_SIZE)
+    if (x < 0 || x >= X_SIZE || y < 0 || y >= Y_SIZE)
       this.Selector.inRange = false;
     else this.Selector.inRange = true;
     if (this.totalRefresh === true || !this.Selector.inRange) return;

@@ -135,7 +135,7 @@ button {
 }
 
 #console-menu {
-  z-index: 2;
+  z-index: 5;
   position: absolute;
   left: 0;
   right: 0;
@@ -164,7 +164,7 @@ button {
 #console-output {
   overflow: scroll;
   position: absolute;
-  z-index: 2;
+  z-index: 5;
   left: 0;
   right: 0;
   top: 25px;
@@ -194,7 +194,7 @@ button {
 
 #console-input-box {
   position: absolute;
-  z-index: 2;
+  z-index: 5;
   left: 0;
   right: 0;
   height: 25px;
@@ -212,7 +212,7 @@ button {
 #console-input {
   display: inline;
   font-family: consolas;
-  z-index: 2;
+  z-index: 5;
   border: 0px;
   margin: 0px;
   padding: 0px;
@@ -225,13 +225,19 @@ button {
 }
 #two-canvas {
   position: absolute;
+  z-index: 3;
   height: 80%;
   width: 80%;
   background-color: white;
 }
+#canvas-border {
+  position: absolute;
+  z-index: 4;
+  background-color: rgba(0,0,0,0);
+}
 #codeEditor {
   position: absolute;
-  z-index: 2;
+  z-index: 5;
   width: 100%;
   top: 25px;
   bottom: 0px;

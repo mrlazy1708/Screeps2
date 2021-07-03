@@ -2,7 +2,6 @@
 
 import { RoomMap } from "./display.js";
 
-const roomName = window.sessionStorage.getItem(`room`) || `W0N0`;
 const origin = `${window.location.protocol}//${window.location.host}`;
 
 const SAVEBACK_INTERVAL = 5000;
@@ -20,6 +19,7 @@ async function room(roomMap) {
     delta = interval - (new Date() % (interval - 1));
   await new Promise((res) => setTimeout(() => res(), delta));
 
+  const roomName = window.sessionStorage.getItem(`room`);
   const info = await data(`getRoomData`, { roomName });
   if (info === `Error: Not Found`) window.location.replace(`${origin}/shard`);
   else roomMap.refresh(info);
