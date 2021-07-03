@@ -633,7 +633,11 @@ export class ShardMap {
       this.Selector.inRange = false;
     else this.Selector.inRange = true;
     if (!this.Selector.inRange) return;
-    sessionStorage.setItem("room", getName(x, y));
-    location.replace(`${window.location.protocol}//${window.location.host}/room`);
+    x -= SHARD_SIZE;
+    y -= SHARD_SIZE;
+    window.sessionStorage.setItem("room", getName(x, y));
+    location.replace(
+      `${window.location.protocol}//${window.location.host}/room`
+    );
   }
 }
