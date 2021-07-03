@@ -88,9 +88,9 @@ class Engine {
   async reset(seed = new Date()) {
     console.log(`Reset engine with seed ${seed}`);
 
-    await this.close();
+    await this.close().catch(() => false);
 
-    await fsp.rm(`./local`, { recursive: true });
+    await fsp.rm(`./local`, { recursive: true }).catch(() => false);
     await fsp.mkdir(`./local/players`, { recursive: true });
     await fsp.writeFile(`./local/meta.json`, ``);
     await fsp.writeFile(`./local/terrain.json`, ``);
