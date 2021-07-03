@@ -28,6 +28,12 @@ function getXY(roomName) {
   return [X + SHARD_SIZE, Y + SHARD_SIZE];
 }
 
+function getName(X, Y) {
+  const nameX = `${X >= 0 ? `E${X}` : `W${-1 - X}`}`,
+    nameY = `${Y >= 0 ? `S${Y}` : `N${-1 - Y}`}`;
+  return nameX + nameY;
+}
+
 class Source {
   constructor(canvas, info, two) {
     this.layer = new Array();
@@ -540,11 +546,16 @@ export class ShardMap {
     this.Selector.pos.opacity = 0.1;
     this.Selector.group.add(this.Selector.pos);
 
-    const canvas = document.querySelector("#two-canvas");
+    const canvas = this.canvasElement;
     canvas.onmousemove = (event) => {
       const x01 = (event.pageX - canvas.offsetLeft) / canvas.offsetWidth,
         y01 = (event.pageY - canvas.offsetTop) / canvas.offsetHeight;
       this.mouseSelector(x01, y01);
+    };
+    canvas.ondblclick = (event) => {
+      const x01 = (event.pageX - canvas.offsetLeft) / canvas.offsetWidth,
+        y01 = (event.pageY - canvas.offsetTop) / canvas.offsetHeight;
+      this.selectRoom(x01, y01);
     };
 
     this.two.update();
@@ -615,5 +626,14 @@ export class ShardMap {
       x * ROOM_SIZE + ROOM_SIZE / 2,
       y * ROOM_SIZE + ROOM_SIZE / 2
     );
+  }
+  selectRoom(x, y) {
+    (x = Math.floor(x * 2 * SHARD_SIZE)), (y = Math.floor(y * 2 * SHARD_SIZE));
+    if (x < 0 || x >= 2 * SHARD_SIZE || y < 0 || y >= 2 * SHARD_SIZE)
+      this.Selector.inRange = false;
+    else this.Selector.inRange = true;
+    if (!this.Selector.inRange) return;
+    sessionStorage.setItem("room", getName(x, y));
+    location.replace(`${window.location.protocol}//${window.location.host}/room`);
   }
 }
