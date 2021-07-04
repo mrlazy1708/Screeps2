@@ -32,6 +32,7 @@ async function room(roomMap) {
 
 async function main() {
   await initMonitor();
+  await initCanvasButton()
   await initEditor();
 
   const REFRESH_INTERVAL = 16;

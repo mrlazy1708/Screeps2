@@ -230,11 +230,6 @@ button {
   width: 80%;
   background-color: white;
 }
-#canvas-border {
-  position: absolute;
-  z-index: 4;
-  background-color: rgba(0,0,0,0);
-}
 #codeEditor {
   position: absolute;
   z-index: 5;

@@ -28,28 +28,38 @@ function twoCanvasMove(event) {
   let = true;
   const upBox = document.querySelector("#upper-left-monitor");
   const canvas = document.querySelector("#two-canvas");
-  const canvasBorder = document.querySelector("#canvas-border");
   const borderWidth = 50;
   const [mouseX0, mouseY0] = [event.pageX, event.pageY],
     [canvasX0, canvasY0] = [canvas.offsetLeft, canvas.offsetTop];
   window.onmouseup = function () {
     window.onmousemove = () => {};
     clamp(upBox, canvas);
-    canvasBorder.style.left = `${canvas.offsetLeft - borderWidth}px`;
-    canvasBorder.style.top = `${canvas.offsetTop - borderWidth}px`;
+    // prettier-ignore
+    setCanvasButton(canvas.offsetTop-borderWidth, canvas.offsetLeft, canvas.offsetWidth, borderWidth, `up`);
+    // prettier-ignore
+    setCanvasButton(canvas.offsetTop+canvas.offsetHeight, canvas.offsetLeft, canvas.offsetWidth, borderWidth, `down`);
+    // prettier-ignore
+    setCanvasButton(canvas.offsetTop, canvas.offsetLeft-borderWidth, borderWidth, canvas.offsetHeight, `left`);
+    // prettier-ignore
+    setCanvasButton(canvas.offsetTop, canvas.offsetLeft+canvas.offsetWidth, borderWidth, canvas.offsetHeight, `right`);
   };
   window.onmousemove = function (event) {
     canvas.style.left = `${canvasX0 + event.pageX - mouseX0}px`;
     canvas.style.top = `${canvasY0 + event.pageY - mouseY0}px`;
-    canvasBorder.style.left = `${canvas.offsetLeft - borderWidth}px`;
-    canvasBorder.style.top = `${canvas.offsetTop - borderWidth}px`;
+    // prettier-ignore
+    setCanvasButton(canvas.offsetTop-borderWidth, canvas.offsetLeft, canvas.offsetWidth, borderWidth, `up`);
+    // prettier-ignore
+    setCanvasButton(canvas.offsetTop+canvas.offsetHeight, canvas.offsetLeft, canvas.offsetWidth, borderWidth, `down`);
+    // prettier-ignore
+    setCanvasButton(canvas.offsetTop, canvas.offsetLeft-borderWidth, borderWidth, canvas.offsetHeight, `left`);
+    // prettier-ignore
+    setCanvasButton(canvas.offsetTop, canvas.offsetLeft+canvas.offsetWidth, borderWidth, canvas.offsetHeight, `right`);
   };
 }
 
 function twoCanvasZoom(event) {
   const upBox = document.querySelector("#upper-left-monitor");
   const canvas = document.querySelector("#two-canvas");
-  const canvasBorder = document.querySelector("#canvas-border");
   const borderWidth = 50;
   const [mouseX, mouseY] = [event.pageX, event.pageY],
     ratioX = (mouseX - canvas.offsetLeft) / canvas.offsetWidth,
@@ -61,18 +71,14 @@ function twoCanvasZoom(event) {
   canvas.style.left = `${mouseX - ratioX * size}px`;
   canvas.style.top = `${mouseY - ratioY * size}px`;
   clamp(upBox, canvas);
-  canvasBorder.style.left = `${canvas.offsetLeft - borderWidth}px`;
-  canvasBorder.style.top = `${canvas.offsetTop - borderWidth}px`;
-  canvasBorder.style.width = `${canvas.offsetWidth + borderWidth * 2}px`;
-  canvasBorder.style.height = `${canvas.offsetHeight + borderWidth * 2}px`;
   // prettier-ignore
-  setCanvasButton(0, borderWidth, canvas.offsetWidth, borderWidth, `up`);
+  setCanvasButton(canvas.offsetTop-borderWidth, canvas.offsetLeft, canvas.offsetWidth, borderWidth, `up`);
   // prettier-ignore
-  setCanvasButton(canvas.offsetWidth+borderWidth, borderWidth, canvas.offsetWidth, borderWidth, `down`);
+  setCanvasButton(canvas.offsetTop+canvas.offsetHeight, canvas.offsetLeft, canvas.offsetWidth, borderWidth, `down`);
   // prettier-ignore
-  setCanvasButton(borderWidth, 0, borderWidth, canvas.offsetHeight, `left`);
+  setCanvasButton(canvas.offsetTop, canvas.offsetLeft-borderWidth, borderWidth, canvas.offsetHeight, `left`);
   // prettier-ignore
-  setCanvasButton(borderWidth, canvas.offsetHeight+borderWidth, borderWidth, canvas.offsetHeight, `right`);
+  setCanvasButton(canvas.offsetTop, canvas.offsetLeft+canvas.offsetWidth, borderWidth, canvas.offsetHeight, `right`);
 }
 
 function consoleInput(element, event) {
@@ -84,7 +90,7 @@ function consoleInput(element, event) {
 }
 
 function getXY(roomName) {
-  const SHARD_SIZE=1;
+  const SHARD_SIZE = 1;
   const [__, qx, nx, qy, ny] = /([WE])(\d+)([NS])(\d+)/.exec(roomName),
     Y = qy === `N` ? -1 - Number(ny) : Number(ny),
     X = qx === `W` ? -1 - Number(nx) : Number(nx);
@@ -154,34 +160,26 @@ async function initMonitor() {
   const top = 0.5 * (monitor.offsetHeight - size);
   canvas.style.top = `${top}px`;
   monitor.appendChild(canvas);
-
-  const canvasBorder = document.createElement(`div`);
-  const borderWidth = 50;
-  canvasBorder.id = `canvas-border`;
-  canvasBorder.style.width = `${size + borderWidth * 2}px`;
-  canvasBorder.style.height = `${size + borderWidth * 2}px`;
-  canvasBorder.style.left = `${
-    0.5 * (monitor.offsetWidth - size) - borderWidth
-  }px`;
-  canvasBorder.style.top = `${
-    0.5 * (monitor.offsetHeight - size) - borderWidth
-  }px`;
-  monitor.appendChild(canvasBorder);
-
-  // prettier-ignore
-  createCanvasButton(canvasBorder, 0, borderWidth, size, borderWidth, `up`);
-  // prettier-ignore
-  createCanvasButton(canvasBorder, size+borderWidth, borderWidth, size, borderWidth, `down`);
-  // prettier-ignore
-  createCanvasButton(canvasBorder, borderWidth, 0, borderWidth, size, `left`);
-  // prettier-ignore
-  createCanvasButton(canvasBorder, borderWidth, size+borderWidth, borderWidth, size, `right`);
 }
 
+async function initCanvasButton(){
+  const monitor = document.querySelector("#upper-left-monitor"),
+  canvas=document.querySelector("#two-canvas");
+  const borderWidth = 50;
+  // prettier-ignore
+  createCanvasButton(monitor, canvas.offsetTop-borderWidth, canvas.offsetLeft, canvas.offsetWidth, borderWidth, `up`);
+  // prettier-ignore
+  createCanvasButton(monitor, canvas.offsetTop+canvas.offsetHeight, canvas.offsetLeft, canvas.offsetWidth, borderWidth, `down`);
+  // prettier-ignore
+  createCanvasButton(monitor, canvas.offsetTop, canvas.offsetLeft-borderWidth, borderWidth, canvas.offsetHeight, `left`);
+  // prettier-ignore
+  createCanvasButton(monitor, canvas.offsetTop, canvas.offsetLeft+canvas.offsetWidth, borderWidth, canvas.offsetHeight, `right`);
+}
 async function createCanvasButton(parent, top, left, width, height, suffix) {
   const button = document.createElement(`div`);
   const SHARD_SIZE = 1;
   button.id = `canvas-button-${suffix}`;
+  button.style.zIndex = "4";
   button.style.position = `absolute`;
   button.style.left = `${left}px`;
   button.style.top = `${top}px`;
@@ -197,17 +195,31 @@ async function createCanvasButton(parent, top, left, width, height, suffix) {
   };
   button.ondblclick = function (event) {
     const roomName = window.sessionStorage.getItem(`room`);
-    if(!roomName) return;
-    let [x,y]=getXY(roomName);
-    x-=SHARD_SIZE;
-    y-=SHARD_SIZE;
-    switch(suffix){
-      case "up":y--;break;
-      case "down":y++;break;
-      case "left":x--;break;
-      case "right":x++;break;
+    if (!roomName) return;
+    let [x, y] = getXY(roomName);
+    x -= SHARD_SIZE;
+    y -= SHARD_SIZE;
+    switch (suffix) {
+      case "up":
+        y--;
+        break;
+      case "down":
+        y++;
+        break;
+      case "left":
+        x--;
+        break;
+      case "right":
+        x++;
+        break;
     }
-    if(x<-SHARD_SIZE||x>=SHARD_SIZE||y<-SHARD_SIZE||y>=SHARD_SIZE) return;
+    if (
+      x < -SHARD_SIZE ||
+      x >= SHARD_SIZE ||
+      y < -SHARD_SIZE ||
+      y >= SHARD_SIZE
+    )
+      return;
     window.sessionStorage.setItem("room", getName(x, y));
   };
   parent.appendChild(button);
@@ -215,6 +227,7 @@ async function createCanvasButton(parent, top, left, width, height, suffix) {
 
 async function setCanvasButton(top, left, width, height, suffix) {
   const button = document.querySelector("#canvas-button-" + suffix);
+  if(!button) return;
   button.style.left = `${left}px`;
   button.style.top = `${top}px`;
   button.style.width = `${width}px`;
