@@ -926,9 +926,10 @@ function create(context, engine, player) {
 
       if (this.spawning) {
         if (this.remainingTime-- <= 0) {
+          const filter = { name: this.spawn },
+            spawn = _.head(_.filter(this.room.structures, filter));
+          if (_.isUndefined(spawn)) console.log(`Conflict: Spawn destoryed!`);
           const directions = _.filter(this.directions, (dir) => {
-            const spawn = context.Game.spawns[this.spawn];
-            if (_.isUndefined(spawn)) return false;
             const look = spawn.pos.clone().move(dir).look();
             return look.length === 1 && _.head(look) !== TERRAIN_WALL;
           });
@@ -945,8 +946,8 @@ function create(context, engine, player) {
               this.getActiveBodyparts(CARRY) * CARRY_CAPACITY
             );
             this.spawning = false;
-            context.Game.spawns[this.spawn].spawning = null;
-          }
+            spawn.spawning = null;
+          } else console.log(`no pos`);
         }
       } else {
         this.ticksToLive--;
