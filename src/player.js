@@ -60,11 +60,11 @@ class Player {
     /** start timer */
     const startTime = new Date();
 
-    /** parse Memory */
-    Object.assign(context.Memory, JSON.parse(this.memory));
-
     /** run code */
     try {
+      /** parse Memory */
+      Object.assign(context.Memory, JSON.parse(this.memory));
+
       const script = new vm.Script(this.script);
       script.runInContext(context);
     } catch (err) {

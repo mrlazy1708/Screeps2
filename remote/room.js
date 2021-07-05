@@ -9,9 +9,9 @@ const editor = ace.edit("codeEditor");
 
 const printLog = (info) => {
   info = info.stdout.split(`\n`);
-  _.forEach(info, (line) =>
-    consoleOutput(`[${line.slice(0, 24)}]:`, line.slice(25))
-  );
+  _.forEach(info, (line) => {
+    if (line !== ``) consoleOutput(`[${line.slice(0, 24)}]:`, line.slice(25));
+  });
 };
 
 async function room(roomMap) {
@@ -32,7 +32,7 @@ async function room(roomMap) {
 
 async function main() {
   await initMonitor();
-  await initCanvasButton()
+  await initCanvasButton();
   await initEditor();
 
   const REFRESH_INTERVAL = 16;
@@ -47,7 +47,7 @@ async function main() {
     if (new Date() - lastSave > SAVEBACK_INTERVAL) {
       lastSave = new Date();
       data(`setScript`, { script: editor.getValue() });
-      console.log(`saved`);
+      console.log(`saved👌`);
     }
   });
 }

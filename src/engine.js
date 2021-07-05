@@ -158,9 +158,30 @@ class Engine {
     await fsp.writeFile(`${dir}/script/main.js`, `console.log('Hello World!')`);
     await fsp.writeFile(`${dir}/memory.json`, `{}`);
     this.players[playerName] = new Player(this, { pass }, playerName);
+    const room = this.RNG.pick(
+      _.values(
+        _.filter(
+          this.Game.rooms,
+          (room) => room.controller instanceof this.StructureController
+        )
+      )
+    );
+    const poss = _.filter(
+      _.flatMap(_.range(5, ROOM_HEIGHT - 5), (y) =>
+        _.map(_.range(5, ROOM_WIDTH - 5), (x) => [x, y])
+      ),
+      ([x, y]) => {
+        const look = room.at(x, y);
+        return look.length === 1 && _.head(look) !== TERRAIN_WALL;
+      }
+    );
+    const pos = this.RNG.pick(poss);
+    console.log(pos);
+    this.StructureSpawn.new(room, pos, `Spawn0`, playerName);
     this.start();
   }
   async getMeta(playerName) {
+    // no GUI provided. randomly assign spawn
     const player = this.players[playerName];
     assert(player instanceof Player, `Invalid player ${playerName}`);
     const meta = {

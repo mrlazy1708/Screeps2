@@ -17,7 +17,7 @@ const SOURCE_SHINE_INTERVAL = 3000;
 const BLOCK_SIZE = ORIGIN_RES / X_SIZE;
 const MAP_SIZE_X = BLOCK_SIZE * X_SIZE;
 const MAP_SIZE_Y = BLOCK_SIZE * Y_SIZE;
-const SHARD_SIZE = 1;
+const SHARD_SIZE = 3;
 const ROOM_SIZE = ORIGIN_RES / (2 * SHARD_SIZE);
 const TINY_BLOCKSIZE = ORIGIN_RES / (2 * SHARD_SIZE * X_SIZE);
 
@@ -192,14 +192,18 @@ export class RoomMap {
     this.Terrain = new Object();
     this.Structures = new Object();
     this.Creeps = new Object();
-    this.Selector = new Object();
+    this.Selector = new Object({ x: -1, y: -1 });
 
     const canvas = document.querySelector("#two-canvas");
-    canvas.onmousemove = (event) => {
+    document.addEventListener(`mousemove`, (event) => {
       const x01 = (event.pageX - canvas.offsetLeft) / canvas.offsetWidth,
         y01 = (event.pageY - canvas.offsetTop) / canvas.offsetHeight;
-      this.mouseSelector(x01, y01);
-    };
+      [this.Selector.x, this.Selector.y] = [
+        Math.floor(x01 * X_SIZE),
+        Math.floor(y01 * Y_SIZE),
+      ];
+      this.refreshSelector(this.info);
+    });
 
     this.two.update();
   }
@@ -215,11 +219,6 @@ export class RoomMap {
     this.Selector.pos.opacity = 0.1;
     this.Selector.group.add(this.Selector.pos);
 
-    // this.Selector.info = new Array(X_SIZE).fill(new Array(Y_SIZE));
-    // Here is the bug:
-    // Array.fill method will not evaluate new Array(Y_SIZE) every time,
-    // so the info array will have X_SIZE arrays pointing to the same array.
-    // Also, please access 2D array by [y][x], not [x][y].
     this.Selector.info = _.map(Array(Y_SIZE), () => Array(X_SIZE));
   }
   refreshCanvas() {
@@ -422,38 +421,38 @@ export class RoomMap {
       }
     }
   }
-  refreshSelector(info) {
-    const terrain = _.map(info.terrain.split(`,`), (r) => r.split(``));
-    for (let y = 0; y < Y_SIZE; y++) {
-      for (let x = 0; x < X_SIZE; x++) {
-        this.Selector.info[y][x] = { terrain: undefined };
-        switch (terrain[y][x]) {
-          case "x":
-            this.Selector.info[y][x].terrain = "Wall";
-            break;
-          case "~":
-            this.Selector.info[y][x].terrain = "Swamp";
-            break;
-          case " ":
-            this.Selector.info[y][x].terrain = "Plain";
-            break;
-          default:
-            throw new Error(`Undefined terrain ${terrain[y][x]}!`);
-        }
+  refreshSelector(info, panel = this.infoColumnElement) {
+    const { x, y } = this.Selector;
+    panel.innerHTML = `room: ${window.sessionStorage.getItem(`room`)}<br />`;
+    if (x < 0 || x >= X_SIZE || y < 0 || y >= Y_SIZE)
+      this.Selector.pos.opacity = `0.0`;
+    else {
+      panel.innerHTML += `x: ${x}, y: ${y}<br />`;
+      this.Selector.pos.opacity = `0.1`;
+      this.Selector.pos.translation.set(
+        x * BLOCK_SIZE + BLOCK_SIZE / 2,
+        y * BLOCK_SIZE + BLOCK_SIZE / 2
+      );
+
+      function print(object, indent = ``) {
+        _.forEach(object, (value, key) => {
+          if (value instanceof Object) {
+            panel.innerHTML += `${indent}${key}: <br />`;
+            print(value, indent + `|  `);
+          } else panel.innerHTML += `${indent}${key}: ${value}<br />`;
+        });
       }
+
+      const rTerrain = _.map(info.terrain.split(`,`), (r) => r.split(``))[y][x],
+        terrain = { x: `Wall`, "~": `Swamp`, " ": `Plain` }[rTerrain],
+        isHere = (object) => _.isEqual(object.pos, [x, y]),
+        structure = _.filter(info.structures, isHere),
+        creep = _.filter(info.creeps, isHere);
+      print({ terrain, structure, creep });
     }
-    _.forEach(
-      info.structures,
-      (structure) =>
-        (this.Selector.info[structure.pos[1]][structure.pos[0]].object =
-          structure)
-    );
-    _.forEach(
-      info.creeps,
-      (creep) => (this.Selector.info[creep.pos[1]][creep.pos[0]].object = creep)
-    );
   }
   refresh(info) {
+    this.info = info;
     this.timeAnchor = new Date();
     if (info === undefined) return;
     if (this.Terrain.str != info.terrain) this.totalRefresh = true;
@@ -485,29 +484,6 @@ export class RoomMap {
           break;
       }
     }
-  }
-  mouseSelector(x, y) {
-    (x = Math.floor(x * X_SIZE)), (y = Math.floor(y * Y_SIZE));
-    if (x < 0 || x >= X_SIZE || y < 0 || y >= Y_SIZE)
-      this.Selector.inRange = false;
-    else this.Selector.inRange = true;
-    if (this.totalRefresh === true || !this.Selector.inRange) return;
-    Object.assign(this.Selector, { x, y });
-    this.Selector.pos.translation.set(
-      x * BLOCK_SIZE + BLOCK_SIZE / 2,
-      y * BLOCK_SIZE + BLOCK_SIZE / 2
-    );
-    const e = this.infoColumnElement;
-    e.innerHTML = `x: ${x}, y: ${y}<br />`;
-    function print(object, indent = `|`) {
-      _.forEach(object, (value, key) => {
-        if (value instanceof Object) {
-          e.innerHTML += `${indent}${key}: <br />`;
-          print(value, indent + `  `);
-        } else e.innerHTML += `${indent}${key}: ${value}<br />`;
-      });
-    }
-    print(this.Selector.info[y][x]);
   }
 }
 
@@ -569,44 +545,39 @@ export class ShardMap {
     this.Terrain.rooms[Y][X] = new Two.Group().addTo(this.Terrain.group);
     this.Terrain.rooms[Y][X].translation.set(X * ROOM_SIZE, Y * ROOM_SIZE);
     info = _.map(info.split(`,`), (r) => r.split(``));
+    const addBlock = (x, y, color) => {
+      const block = new Two.Rectangle(
+        x * TINY_BLOCKSIZE + TINY_BLOCKSIZE / 2,
+        y * TINY_BLOCKSIZE + TINY_BLOCKSIZE / 2,
+        TINY_BLOCKSIZE,
+        TINY_BLOCKSIZE
+      );
+      block.noStroke();
+      block.fill = color;
+      this.Terrain.rooms[Y][X].add(block);
+    };
     for (let y = 0; y < Y_SIZE; y++) {
       for (let x = 0; x < X_SIZE; x++) {
-        let block;
         switch (info[y][x]) {
-          case "x":
-            block = new Two.Rectangle(
-              x * TINY_BLOCKSIZE + TINY_BLOCKSIZE / 2,
-              y * TINY_BLOCKSIZE + TINY_BLOCKSIZE / 2,
-              TINY_BLOCKSIZE,
-              TINY_BLOCKSIZE
-            );
-            block.noStroke();
-            block.fill = WALL_COLOR;
-            this.Terrain.rooms[Y][X].add(block);
-            break;
-          case "~":
-            block = new Two.Rectangle(
-              x * TINY_BLOCKSIZE + TINY_BLOCKSIZE / 2,
-              y * TINY_BLOCKSIZE + TINY_BLOCKSIZE / 2,
-              TINY_BLOCKSIZE,
-              TINY_BLOCKSIZE
-            );
-            block.noStroke();
-            block.fill = SWAMP_COLOR;
-            this.Terrain.rooms[Y][X].add(block);
-            break;
           case " ":
             break;
+          case "~":
+            addBlock(x, y, SWAMP_COLOR);
+            break;
+          case "x":
+            addBlock(x, y, WALL_COLOR);
+            break;
+          case "c":
+            addBlock(x, y, `#B0C94E`);
+            break;
+          case "s":
+            addBlock(x, y, `#4EC9B0`);
+            break;
+          case "p":
+            addBlock(x, y, `#C94EB0`);
+            break;
           default:
-            block = new Two.Rectangle(
-              x * TINY_BLOCKSIZE + TINY_BLOCKSIZE / 2,
-              y * TINY_BLOCKSIZE + TINY_BLOCKSIZE / 2,
-              TINY_BLOCKSIZE,
-              TINY_BLOCKSIZE
-            );
-            block.noStroke();
-            block.fill = `#4EC9B0`;
-            this.Terrain.rooms[Y][X].add(block);
+            addBlock(x, y, `#4EB0C9`);
           // throw new Error(`Undefined info ${info[y][x]}!`);
         }
       }

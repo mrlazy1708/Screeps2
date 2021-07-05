@@ -90,11 +90,10 @@ function consoleInput(element, event) {
 }
 
 function getXY(roomName) {
-  const SHARD_SIZE = 1;
   const [__, qx, nx, qy, ny] = /([WE])(\d+)([NS])(\d+)/.exec(roomName),
     Y = qy === `N` ? -1 - Number(ny) : Number(ny),
     X = qx === `W` ? -1 - Number(nx) : Number(nx);
-  return [X + SHARD_SIZE, Y + SHARD_SIZE];
+  return [X, Y]; // wtf you modified
 }
 
 function getName(X, Y) {
@@ -143,6 +142,8 @@ function switchWindow(tag) {
       consoleInput.disabled = false;
       consoleWindow.style.display = "inline";
       scriptWindow.style.display = "none";
+      const editor = ace.edit("codeEditor");
+      data(`setScript`, { script: editor.getValue() });
       break;
   }
 }
@@ -162,9 +163,9 @@ async function initMonitor() {
   monitor.appendChild(canvas);
 }
 
-async function initCanvasButton(){
+async function initCanvasButton() {
   const monitor = document.querySelector("#upper-left-monitor"),
-  canvas=document.querySelector("#two-canvas");
+    canvas = document.querySelector("#two-canvas");
   const borderWidth = 50;
   // prettier-ignore
   createCanvasButton(monitor, canvas.offsetTop-borderWidth, canvas.offsetLeft, canvas.offsetWidth, borderWidth, `up`);
@@ -177,7 +178,7 @@ async function initCanvasButton(){
 }
 async function createCanvasButton(parent, top, left, width, height, suffix) {
   const button = document.createElement(`div`);
-  const SHARD_SIZE = 1;
+  const SHARD_SIZE = 3; // wtf
   button.id = `canvas-button-${suffix}`;
   button.style.zIndex = "4";
   button.style.position = `absolute`;
@@ -197,8 +198,6 @@ async function createCanvasButton(parent, top, left, width, height, suffix) {
     const roomName = window.sessionStorage.getItem(`room`);
     if (!roomName) return;
     let [x, y] = getXY(roomName);
-    x -= SHARD_SIZE;
-    y -= SHARD_SIZE;
     switch (suffix) {
       case "up":
         y--;
@@ -213,13 +212,8 @@ async function createCanvasButton(parent, top, left, width, height, suffix) {
         x++;
         break;
     }
-    if (
-      x < -SHARD_SIZE ||
-      x >= SHARD_SIZE ||
-      y < -SHARD_SIZE ||
-      y >= SHARD_SIZE
-    )
-      return;
+    if (x < -SHARD_SIZE || x >= SHARD_SIZE) return;
+    if (y < -SHARD_SIZE || y >= SHARD_SIZE) return;
     window.sessionStorage.setItem("room", getName(x, y));
   };
   parent.appendChild(button);
@@ -227,7 +221,7 @@ async function createCanvasButton(parent, top, left, width, height, suffix) {
 
 async function setCanvasButton(top, left, width, height, suffix) {
   const button = document.querySelector("#canvas-button-" + suffix);
-  if(!button) return;
+  if (!button) return;
   button.style.left = `${left}px`;
   button.style.top = `${top}px`;
   button.style.width = `${width}px`;
@@ -264,3 +258,8 @@ async function data(request, opts = {}) {
   }
   return json;
 }
+
+const toShard = () => {
+  const origin = `${window.location.protocol}//${window.location.host}`;
+  window.location.replace(`${origin}/shard`);
+};

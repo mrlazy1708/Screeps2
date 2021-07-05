@@ -68,6 +68,11 @@ button {
   background-color: #424242;
 }
 
+#button-wrap {
+  position: fixed;
+  z-index: 9999;
+}
+
 #login-frame {
   padding: 20px 50px 20px 50px;
   border: solid;

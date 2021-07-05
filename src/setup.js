@@ -276,7 +276,7 @@ function create(context, engine, player) {
       const pred = (structure) => structure instanceof StructureSpawn,
         energyStructures = _.filter(_structures.get(this.name), pred),
         get = (structure) => structure.store.getUsed(RESOURCE_ENERGY);
-      return _.sum(energyStructures, get);
+      return _.sumBy(energyStructures, get);
     }
 
     /** Total amount of energyCapacity of all spawns and extensions in the room. */
@@ -924,7 +924,7 @@ function create(context, engine, player) {
       if (this.fatigue <= 0) this.fatigue = 0;
 
       if (this.spawning) {
-        if (this.remainingTime-- === 0) {
+        if (this.remainingTime-- <= 0) {
           const directions = _.filter(this.directions, (dir) => {
             const spawn = context.Game.spawns[this.spawn];
             if (_.isUndefined(spawn)) return false;

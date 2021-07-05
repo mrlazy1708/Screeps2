@@ -2,8 +2,8 @@
 
 Object.assign(module.exports, {
   /** game map */
-  WORLD_WIDTH: 2,
-  WORLD_HEIGHT: 2,
+  WORLD_WIDTH: 6,
+  WORLD_HEIGHT: 6,
   ROOM_WIDTH: 64,
   ROOM_HEIGHT: 64,
 });
