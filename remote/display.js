@@ -536,7 +536,7 @@ export class ShardMap {
 
     this.two.update();
   }
-  refresh(roomName, info) {
+  refresh(roomName, info, meta) {
     const [X, Y] = getXY(roomName);
     if (this.Terrain.infos[Y][X] === info) return;
     this.Terrain.infos[Y][X] = info;
@@ -544,6 +544,7 @@ export class ShardMap {
       this.Terrain.rooms[Y][X].remove();
     this.Terrain.rooms[Y][X] = new Two.Group().addTo(this.Terrain.group);
     this.Terrain.rooms[Y][X].translation.set(X * ROOM_SIZE, Y * ROOM_SIZE);
+
     info = _.map(info.split(`,`), (r) => r.split(``));
     const addBlock = (x, y, color) => {
       const block = new Two.Rectangle(
@@ -582,6 +583,18 @@ export class ShardMap {
         }
       }
     }
+
+    const banner = new Two.Text(
+      _.head(meta.owner),
+      ROOM_SIZE / 2,
+      ROOM_SIZE / 2
+    );
+    banner.family = `Consolas, monaco, monospace`;
+    banner.alignment = `center`;
+    banner.size = 64;
+    banner.fill = `#4ec9b0`;
+    banner.noStroke();
+    this.Terrain.rooms[Y][X].add(banner);
   }
   play() {
     this.two.scene.scale = this.canvasElement.offsetWidth / ORIGIN_RES;

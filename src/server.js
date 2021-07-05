@@ -131,10 +131,12 @@ class Server {
                   replyWith(await this.engine.getMeta(name));
                 if (data.request === "setSpawn")
                   replyWith(await this.engine.setSpawn(name, data.pos, data));
-                if (data.request === "getRoomData")
-                  replyWith(await this.engine.getRoomData(data.roomName));
+                if (data.request === "getRoomMeta")
+                  replyWith(await this.engine.getRoomMeta(data.roomName));
                 if (data.request === "getRoomMap")
                   replyWith(await this.engine.getRoomMap(data.roomName));
+                if (data.request === "getRoomData")
+                  replyWith(await this.engine.getRoomData(data.roomName));
                 if (data.request === `getLog`)
                   replyWith(await this.engine.getLog(name));
                 if (data.request === `getScript`)

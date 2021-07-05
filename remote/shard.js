@@ -12,8 +12,9 @@ async function shard(shardMap) {
       const roomName =
         `${x >= 0 ? `E${x}` : `W${-1 - x}`}` +
         `${y >= 0 ? `S${y}` : `N${-1 - y}`}`;
-      const info = await data(`getRoomMap`, { roomName });
-      shardMap.refresh(roomName, info);
+        const meta = await data(`getRoomMeta`, { roomName });
+        const info = await data(`getRoomMap`, { roomName });
+      shardMap.refresh(roomName, info, meta);
     })
   );
 
