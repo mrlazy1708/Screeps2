@@ -49,8 +49,9 @@ function create(context, engine, player) {
       this.structures = _.merge({}, ..._structures.values());
 
       /** Game.spawns */
-      const isSpawn = (structure) => structure instanceof StructureSpawn;
-      this.spawns = _.mapKeys(_.pickBy(this.structures, isSpawn), `name`);
+      const mySpawn = (structure) =>
+        structure instanceof StructureSpawn && structure.owner === player.name;
+      this.spawns = _.mapKeys(_.filter(this.structures, mySpawn), `name`);
     }
 
     /**

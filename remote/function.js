@@ -247,6 +247,7 @@ async function data(request, opts = {}) {
     pass = window.sessionStorage.getItem(`pass`) || ``,
     body = { auth: { name, pass }, request },
     origin = `${window.location.protocol}//${window.location.host}`;
+  console.log(name);
   const json = await fetch(`${origin}/data`, {
     method: `POST`,
     body: JSON.stringify(Object.assign(body, opts)),
