@@ -10,7 +10,10 @@ const editor = ace.edit("codeEditor");
 const printLog = (info) => {
   info = info.split(`\n`);
   _.forEach(info, (line) => {
-    if (line !== ``) consoleOutput(`[${line.slice(0, 24)}]:`, line.slice(25));
+    if (line.startsWith(`2021-`))
+      consoleOutput(`[${line.slice(0, 24)}]:`, line.slice(25));
+    else if (line !== ``)
+      consoleOutput(`[${new Date().toJSON()}]:`, `${line}`, `#ff0033`);
   });
 };
 

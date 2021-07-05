@@ -16,7 +16,10 @@ function auth(name, pass, request) {
         window.sessionStorage.setItem(`pass`, pass);
         const prevUrl = window.sessionStorage.getItem(`prev`);
         window.location.replace(prevUrl || origin);
-      } else return json;
+      } else {
+        alert(json);
+        return json;
+      }
     })
     .catch((err) => console.log(err));
 }

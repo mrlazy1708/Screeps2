@@ -102,7 +102,7 @@ function getName(X, Y) {
   return nameX + nameY;
 }
 
-function consoleOutput(stamp, message) {
+function consoleOutput(stamp, message, color) {
   const output = document.querySelector(`#console-output`),
     lines = [...output.children],
     line = document.createElement(`div`),
@@ -123,6 +123,7 @@ function consoleOutput(stamp, message) {
     const lineMessage = document.createElement(`div`);
     lineMessage.className = `console-output-line-message`;
     lineMessage.id = `console-output-line-stamp-${index}`;
+    lineMessage.style.color = color;
     lineMessage.textContent = message;
     line.appendChild(lineMessage);
   }
