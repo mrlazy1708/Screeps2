@@ -8,7 +8,7 @@ const SAVEBACK_INTERVAL = 5000;
 const editor = ace.edit("codeEditor");
 
 const printLog = (info) => {
-  info = info.stdout.split(`\n`);
+  info = info.split(`\n`);
   _.forEach(info, (line) => {
     if (line !== ``) consoleOutput(`[${line.slice(0, 24)}]:`, line.slice(25));
   });
@@ -25,7 +25,8 @@ async function room(roomMap) {
   else roomMap.refresh(info);
 
   const log = await data(`getLog`);
-  printLog(log);
+  printLog(log.stdout);
+  printLog(log.stderr);
 
   room(roomMap);
 }
